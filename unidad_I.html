@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador Interactivo de Campos Eléctricos</title>
+<style>
+/* ============================================================
+   ESTILOS GENERALES (TEMA OSCURO)
+   ============================================================ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root{
+  --bg:        #070b11;
+  --panel-a:   #121a26;
+  --panel-b:   #0d141d;
+  --border:    #1e2b3d;
+  --text:      #e6eefc;
+  --muted:     #8ea3bd;
+  --pos:       #ff4d5e;
+  --neg:       #3d8bff;
+  --accent:    #41d1a7;
+  --accent-2:  #ffb347;
+}
+
+html, body{ height: 100%; }
+
+body{
+  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   ESTRUCTURA: PANEL (30%) + LIENZO (70%)
+   ============================================================ */
+#app{
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+}
+
+#panel{
+  width: 30%;
+  min-width: 300px;
+  max-width: 430px;
+  background: linear-gradient(180deg, var(--panel-a), var(--panel-b));
+  border-right: 1px solid var(--border);
+  padding: 18px 18px 26px 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+#panel::-webkit-scrollbar{ width: 9px; }
+#panel::-webkit-scrollbar-track{ background: transparent; }
+#panel::-webkit-scrollbar-thumb{
+  background: #1f2d40; border-radius: 6px;
+}
+#panel::-webkit-scrollbar-thumb:hover{ background: #2b3d55; }
+
+#canvasWrap{
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+#cv{
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/* ============================================================
+   COMPONENTES DEL PANEL
+   ============================================================ */
+.brand h1{
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  line-height: 1.25;
+}
+.brand h1 span{ color: var(--accent); }
+.brand p{
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 4px;
+  letter-spacing: .2px;
+}
+
+.card{
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 13px 13px 15px 13px;
+}
+
+.card h2{
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--muted);
+  margin-bottom: 11px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.card h2::before{
+  content: '';
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+/* ---------- Botones ---------- */
+.btn{
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text);
+  background: #1a2536;
+  border: 1px solid #26374d;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background .16s, transform .08s, border-color .16s, box-shadow .16s;
+  user-select: none;
+}
+.btn:hover{ background: #223045; border-color: #34496a; }
+.btn:active{ transform: scale(.975); }
+
+.btn-pos{
+  background: linear-gradient(180deg, #3a1620, #2a1017);
+  border-color: #6d2734;
+  color: #ffb9c2;
+}
+.btn-pos:hover{ background: linear-gradient(180deg, #4d1c29, #38141d); border-color: #a33a4c; }
+
+.btn-neg{
+  background: linear-gradient(180deg, #10233d, #0b182a);
+  border-color: #24456f;
+  color: #a8ccff;
+}
+.btn-neg:hover{ background: linear-gradient(180deg, #163055, #0f2038); border-color: #3668a8; }
+
+.btn-accent{
+  background: linear-gradient(180deg, #10362c, #0b2620);
+  border-color: #1f6b56;
+  color: #8ff0d2;
+}
+.btn-accent:hover{ background: linear-gradient(180deg, #174a3c, #0e3229); border-color: #2b9a7c; }
+
+.btn-ghost{
+  background: #141d29;
+  border-color: #24334a;
+  color: var(--muted);
+  font-weight: 500;
+}
+.btn-ghost:hover{ background: #1b2635; color: var(--text); }
+
+.btn-row{
+  display: flex;
+  gap: 8px;
+}
+.btn-row .btn{ flex: 1; }
+
+.stack{ display: flex; flex-direction: column; gap: 8px; }
+
+/* ---------- Sliders ---------- */
+.field{ margin-top: 11px; }
+.field:first-child{ margin-top: 0; }
+
+.field label{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  letter-spacing: .3px;
+}
+.field label b{
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+input[type="range"]{
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  border-radius: 3px;
+  background: #1d2a3c;
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #0a1119;
+  box-shadow: 0 0 8px rgba(65,209,167,.55);
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb{
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid #0a1119;
+  box-shadow: 0 0 8px rgba(65,209,167,.55);
+  cursor: pointer;
+}
+
+/* ---------- Selector de partícula ---------- */
+.radio-group{
+  display: flex;
+  gap: 8px;
+}
+.radio-group input{ display: none; }
+.radio-group label{
+  flex: 1;
+  text-align: center;
+  padding: 9px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 9px;
+  border: 1px solid #26374d;
+  background: #141d29;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .16s;
+  user-select: none;
+}
+.radio-group input:checked + label{
+  background: #1d2c40;
+  border-color: var(--accent);
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(65,209,167,.35) inset;
+}
+.radio-group label:hover{ color: var(--text); }
+
+/* ---------- Checkboxes ---------- */
+.check{
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  color: var(--text);
+  padding: 6px 0;
+  cursor: pointer;
+  user-select: none;
+}
+.check input{
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px; height: 16px;
+  border-radius: 5px;
+  border: 1px solid #2b3d55;
+  background: #131c28;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: all .15s;
+}
+.check input:checked{
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.check input:checked::after{
+  content: '';
+  position: absolute;
+  left: 5px; top: 1.5px;
+  width: 4px; height: 9px;
+  border: solid #06221a;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* ---------- Estado / contador ---------- */
+.status{
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--muted);
+  padding: 7px 10px;
+  background: rgba(0,0,0,.28);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-top: 10px;
+  letter-spacing: .3px;
+}
+.status b{ color: var(--text); font-variant-numeric: tabular-nums; }
+
+.hint{
+  font-size: 11px;
+  color: #64758d;
+  line-height: 1.55;
+  margin-top: 10px;
+  padding-left: 2px;
+}
+.hint b{ color: #93a7c0; }
+
+/* ---------- Lectura de V y E en el panel ---------- */
+.readout{
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+.readout .row{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 10px;
+  background: rgba(0,0,0,.28);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.readout .row span{ color: var(--muted); }
+.readout .row b{
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.readout .row b.pot{ color: #ffd166; }
+.readout .row b.cmp{ color: #7fd1ff; }
+
+/* ============================================================
+   TOOLTIP FLOTANTE SOBRE EL LIENZO
+   ============================================================ */
+#tooltip{
+  position: absolute;
+  top: 0; left: 0;
+  display: none;
+  pointer-events: none;
+  min-width: 168px;
+  padding: 9px 11px;
+  border-radius: 10px;
+  border: 1px solid #2a3a52;
+  background: rgba(9, 15, 23, .93);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  box-shadow: 0 10px 28px rgba(0,0,0,.6);
+  font-size: 12px;
+  z-index: 20;
+  transition: opacity .1s;
+}
+#tooltip .tt-row{
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  line-height: 1.75;
+}
+#tooltip .tt-row span{ color: var(--muted); }
+#tooltip .tt-row b{
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+#tooltip .tt-row b.pot{ color: #ffd166; }
+#tooltip .tt-row b.cmp{ color: #7fd1ff; }
+#tooltip .tt-title{
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #56698a;
+  border-bottom: 1px solid #1d2b3f;
+  padding-bottom: 5px;
+  margin-bottom: 5px;
+}
+
+/* ============================================================
+   RESPONSIVO: EN PANTALLAS PEQUEÑAS SE APILA EN COLUMNA
+   ============================================================ */
+@media (max-width: 900px){
+  #app{ flex-direction: column; }
+  #panel{
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    height: 46%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 14px;
+  }
+  #canvasWrap{ height: 54%; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============================================================
+       PANEL LATERAL DE CONTROLES
+       ============================================================ -->
+  <aside id="panel">
+
+    <div class="brand">
+      <h1>Simulador de <span>Campos Eléctricos</span></h1>
+      <p>Unidad 1 · Electrostática · Fuerza de Coulomb</p>
+    </div>
+
+    <!-- ---------- MÓDULO 1: CARGAS PUNTUALES ---------- -->
+    <div class="card">
+      <h2>Cargas puntuales</h2>
+
+      <div class="stack">
+        <button class="btn btn-pos" id="btnAddPos">
+          <span style="font-size:15px">＋</span> Añadir carga positiva
+        </button>
+        <button class="btn btn-neg" id="btnAddNeg">
+          <span style="font-size:15px">－</span> Añadir carga negativa
+        </button>
+      </div>
+
+      <div class="field">
+        <label>Magnitud de la carga |q| <b id="magVal">1.0 nC</b></label>
+        <input type="range" id="magSlider" min="0.5" max="3" step="0.5" value="1">
+      </div>
+
+      <div class="status">
+        <span>Cargas en el lienzo</span>
+        <b id="counter">0 / 10</b>
+      </div>
+
+      <p class="hint">
+        <b>Arrastra</b> una carga para moverla · <b>Doble clic</b> sobre ella para eliminarla.
+      </p>
+    </div>
+
+    <!-- ---------- MÓDULO 2: VISUALIZACIÓN ---------- -->
+    <div class="card">
+      <h2>Visualización del campo</h2>
+
+      <label class="check">
+        <input type="checkbox" id="chkHeat" checked>
+        Mapa de calor del potencial (V)
+      </label>
+      <label class="check">
+        <input type="checkbox" id="chkLines" checked>
+        Líneas de campo eléctrico (E)
+      </label>
+      <label class="check">
+        <input type="checkbox" id="chkGrid" checked>
+        Rejilla de referencia
+      </label>
+
+      <p class="hint">
+        Pasa el ratón sobre el lienzo para leer el <b>Potencial V</b> y el <b>Campo |E|</b> en ese punto.
+      </p>
+    </div>
+
+    <!-- ---------- MÓDULO 3: PARTÍCULA DE PRUEBA ---------- -->
+    <div class="card">
+      <h2>Trayectoria de partícula</h2>
+
+      <div class="radio-group">
+        <input type="radio" name="ptype" id="pElectron" value="electron" checked>
+        <label for="pElectron">⚡ Electrón (q−)</label>
+
+        <input type="radio" name="ptype" id="pProton" value="proton">
+        <label for="pProton">🔴 Protón (q+)</label>
+      </div>
+
+      <div class="field" style="margin-top:13px">
+        <label>Velocidad inicial <b id="speedVal">2.0</b></label>
+        <input type="range" id="speedSlider" min="0.4" max="6" step="0.2" value="2">
+      </div>
+
+      <div class="stack" style="margin-top:12px">
+        <button class="btn btn-accent" id="btnLaunch">
+          🚀 Lanzar partícula de prueba
+        </button>
+        <div class="btn-row">
+          <button class="btn btn-ghost" id="btnPause">⏸ Pausar</button>
+          <button class="btn btn-ghost" id="btnClearTrails">🧹 Trayectorias</button>
+        </div>
+        <button class="btn btn-ghost" id="btnClearAll">🗑 Limpiar lienzo completo</button>
+      </div>
+    </div>
+
+    <!-- ---------- LECTURA NUMÉRICA ---------- -->
+    <div class="card">
+      <h2>Lectura en el cursor</h2>
+      <div class="readout">
+        <div class="row"><span>Potencial eléctrico V</span><b class="pot" id="roV">—</b></div>
+        <div class="row"><span>Campo eléctrico |E|</span><b class="cmp" id="roE">—</b></div>
+        <div class="row"><span>Coordenadas (x, y)</span><b id="roXY">—</b></div>
+      </div>
+      <p class="hint">
+        Valores calculados con <b>k = 9×10⁹ N·m²/C²</b> y cargas en <b>nC</b>,
+        con una escala de píxeles adaptada para la visualización.
+      </p>
+    </div>
+
+  </aside>
+
+  <!-- ============================================================
+       LIENZO PRINCIPAL DE SIMULACIÓN
+       ============================================================ -->
+  <main id="canvasWrap">
+    <canvas id="cv"></canvas>
+    <div id="tooltip"></div>
+  </main>
+
+</div>
+
+<script>
+/* ==================================================================
+   SIMULADOR INTERACTIVO DE CAMPOS ELÉCTRICOS
+   ------------------------------------------------------------------
+   - Módulo 1: Cargas puntuales arrastrables (máx. 10) + líneas de campo
+   - Módulo 2: Mapa de calor del potencial + tooltip con V y |E|
+   - Módulo 3: Partícula de prueba con trayectoria (Fuerza de Coulomb)
+   ================================================================== */
+(function () {
+'use strict';
+
+/* ============================================================
+   1. CONSTANTES Y ESTADO GLOBAL
+   ============================================================ */
+
+const MAX_CARGAS   = 10;      // límite de cargas simultáneas
+const K            = 12000;   // "k" escalada para que los valores sean legibles
+const FORCE_K      = 0.26;    // escala de la fuerza aplicada a las partículas
+const RADIO_MIN2   = 100;     // r² mínimo (evita singularidades en r = 0)
+const BLOCK        = 8;       // tamaño de bloque del mapa de calor (px)
+const MAX_PART     = 40;      // máximo de partículas simultáneas
+
+/* --- Parámetros de las líneas de campo (ahora más gruesas y con flechas) --- */
+const LINE_WIDTH       = 2.2;     // grosor de las líneas de campo (antes 1.25)
+const ARROW_EVERY      = 20;      // colocar una flecha cada N puntos de la polilínea
+const ARROW_SIZE       = 9;       // tamaño (px) de cada punta de flecha
+
+let W = 0, H = 0, DPR = 1;    // dimensiones lógicas y densidad de píxeles
+
+const charges   = [];         // { x, y, q }
+const particles = [];         // { x, y, vx, vy, q, m, color }
+
+let dragging   = null;        // carga que se está arrastrando
+let dragOffset = { x: 0, y: 0 };
+let cursor     = null;        // posición actual del ratón sobre el lienzo
+
+let paused     = false;       // pausa de la simulación de partículas
+let dirty      = true;        // ¿hay que recalcular las capas de fondo?
+
+let showHeat   = true;
+let showLines  = true;
+let showGrid   = true;
+
+/* ============================================================
+   2. REFERENCIAS AL DOM
+   ============================================================ */
+
+const cv         = document.getElementById('cv');
+const ctx        = cv.getContext('2d');
+const wrap       = document.getElementById('canvasWrap');
+const tooltip    = document.getElementById('tooltip');
+
+const btnAddPos  = document.getElementById('btnAddPos');
+const btnAddNeg  = document.getElementById('btnAddNeg');
+const magSlider  = document.getElementById('magSlider');
+const magVal     = document.getElementById('magVal');
+const counter    = document.getElementById('counter');
+
+const chkHeat    = document.getElementById('chkHeat');
+const chkLines   = document.getElementById('chkLines');
+const chkGrid    = document.getElementById('chkGrid');
+
+const speedSlider= document.getElementById('speedSlider');
+const speedVal   = document.getElementById('speedVal');
+const btnLaunch  = document.getElementById('btnLaunch');
+const btnPause   = document.getElementById('btnPause');
+const btnClearTrails = document.getElementById('btnClearTrails');
+const btnClearAll    = document.getElementById('btnClearAll');
+
+const roV  = document.getElementById('roV');
+const roE  = document.getElementById('roE');
+const roXY = document.getElementById('roXY');
+
+/* ============================================================
+   3. CAPAS AUXILIARES (OFFSCREEN CANVAS)
+   ------------------------------------------------------------
+   - heatCv  : mapa de calor del potencial
+   - fieldCv : líneas de campo eléctrico
+   - trailCv : rastro persistente de las partículas
+   ============================================================ */
+
+const heatCv    = document.createElement('canvas');
+const heatCtx   = heatCv.getContext('2d');
+
+const fieldCv   = document.createElement('canvas');
+const fieldCtx  = fieldCv.getContext('2d');
+
+const trailCv   = document.createElement('canvas');
+const trailCtx  = trailCv.getContext('2d');
+
+// Lienzo diminuto para generar el mapa de calor por bloques
+const heatSmall    = document.createElement('canvas');
+const heatSmallCtx = heatSmall.getContext('2d');
+
+/* ============================================================
+   4. UTILIDADES MATEMÁTICAS
+   ============================================================ */
+
+/**
+ * Campo eléctrico y potencial en un punto (x, y).
+ * Devuelve { ex, ey, v } donde (ex, ey) es el vector campo
+ * y v el potencial escalar.
+ */
+function fieldAt(x, y) {
+  let ex = 0, ey = 0, v = 0;
+
+  for (let i = 0; i < charges.length; i++) {
+    const c  = charges[i];
+    const dx = x - c.x;
+    const dy = y - c.y;
+
+    let r2 = dx * dx + dy * dy;
+    if (r2 < RADIO_MIN2) r2 = RADIO_MIN2;   // evita infinitos
+
+    const r = Math.sqrt(r2);
+    const f = K * c.q / r2;                  // |E| = k·q / r²
+
+    ex += f * (dx / r);                      // componente x
+    ey += f * (dy / r);                      // componente y
+    v  += K * c.q / r;                       // V = k·q / r
+  }
+
+  return { ex: ex, ey: ey, v: v };
+}
+
+/** Formatea un número para mostrarlo de forma compacta y legible. */
+function fmt(n, dec) {
+  dec = (dec === undefined) ? 2 : dec;
+  if (!isFinite(n)) return '∞';
+  const a = Math.abs(n);
+  if (a >= 10000) return n.toExponential(2);
+  if (a >= 100)   return n.toFixed(0);
+  if (a >= 10)    return n.toFixed(1);
+  return n.toFixed(dec);
+}
+
+/* ============================================================
+   5. GESTIÓN DEL TAMAÑO (RESPONSIVE + ALTA DENSIDAD)
+   ============================================================ */
+
+function resize() {
+  const rect = wrap.getBoundingClientRect();
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+  W = Math.max(1, Math.floor(rect.width));
+  H = Math.max(1, Math.floor(rect.height));
+
+  // Lienzo principal
+  cv.width  = Math.round(W * DPR);
+  cv.height = Math.round(H * DPR);
+  cv.style.width  = W + 'px';
+  cv.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  // Capas auxiliares (misma resolución para que no se vean borrosas)
+  [ [heatCv, heatCtx], [fieldCv, fieldCtx], [trailCv, trailCtx] ]
+    .forEach(function (pair) {
+      pair[0].width  = Math.round(W * DPR);
+      pair[0].height = Math.round(H * DPR);
+      pair[1].setTransform(DPR, 0, 0, DPR, 0, 0);
+    });
+
+  // Limpiamos el rastro porque cambian las dimensiones
+  trailCtx.clearRect(0, 0, W, H);
+
+  dirty = true; // hay que recalcular el mapa de calor y las líneas
+}
+
+/* ============================================================
+   6. MÓDULO 1: LÍNEAS DE CAMPO ELÉCTRICO
+   ------------------------------------------------------------
+   Se trazan "streamlines" siguiendo la dirección del vector E.
+   Se siembran desde las cargas positivas (hacia fuera); si no hay
+   ninguna positiva, se siembran desde las negativas hacia atrás.
+
+   CAMBIOS SOLICITADOS:
+     - Líneas más gruesas (LINE_WIDTH = 2.2).
+     - Puntas de flecha que indican la dirección real del campo.
+   ============================================================ */
+
+/**
+ * Dibuja una punta de flecha sobre el segmento p0→p1.
+ * `dir` es +1 cuando el recorrido de la polilínea coincide con el
+ * sentido del campo, y -1 cuando se ha trazado en sentido inverso
+ * (caso de cargas negativas aisladas). Así la flecha siempre apunta
+ * en la dirección física real de E.
+ */
+function drawFieldArrow(p0, p1, dir) {
+  let dx = (p1.x - p0.x) * dir;
+  let dy = (p1.y - p0.y) * dir;
+  const len = Math.hypot(dx, dy);
+  if (len < 1e-6) return;
+  dx /= len;
+  dy /= len;
+
+  // Vector perpendicular (para construir la base del triángulo)
+  const px = -dy;
+  const py =  dx;
+
+  const h  = ARROW_SIZE * 0.5;        // mitad del largo de la flecha
+  const bw = ARROW_SIZE * 0.42;       // semi-ancho de la base
+
+  const ax = p0.x;                    // centro de la flecha
+  const ay = p0.y;
+
+  fieldCtx.beginPath();
+  // Punta
+  fieldCtx.moveTo(ax + dx * h, ay + dy * h);
+  // Base izquierda
+  fieldCtx.lineTo(ax - dx * h + px * bw, ay - dy * h + py * bw);
+  // Base derecha
+  fieldCtx.lineTo(ax - dx * h - px * bw, ay - dy * h - py * bw);
+  fieldCtx.closePath();
+  fieldCtx.fill();
+}
+
+/** Traza una línea de campo desde (x0, y0) en la dirección `dir` (+1 / -1). */
+function traceLine(x0, y0, dir) {
+  const h        = 8;     // tamaño de paso en píxeles
+  const MAX_STEP = 320;   // número máximo de pasos
+
+  let x = x0, y = y0;
+
+  // Recolectamos los puntos para poder dibujar la polilínea y las flechas
+  const pts = [{ x: x, y: y }];
+
+  for (let i = 0; i < MAX_STEP; i++) {
+    const f   = fieldAt(x, y);
+    const mag = Math.sqrt(f.ex * f.ex + f.ey * f.ey);
+
+    if (mag < 1e-9) break;                 // punto nulo o campo despreciable
+
+    // Avance en la dirección (normalizada) del campo
+    x += dir * h * (f.ex / mag);
+    y += dir * h * (f.ey / mag);
+
+    pts.push({ x: x, y: y });
+
+    // Fuera del lienzo (con margen) -> terminamos
+    if (x < -60 || x > W + 60 || y < -60 || y > H + 60) break;
+
+    // Demasiado cerca de una carga -> terminamos (la línea "aterriza")
+    let near = false;
+    for (let k = 0; k < charges.length; k++) {
+      const c  = charges[k];
+      const dx = x - c.x, dy = y - c.y;
+      if (dx * dx + dy * dy < 64) { near = true; break; }
+    }
+    if (near) break;
+  }
+
+  if (pts.length < 2) return;
+
+  // --- 1) Dibujamos la polilínea con halo suave ---
+  fieldCtx.shadowColor = 'rgba(80, 170, 255, 0.55)';
+  fieldCtx.shadowBlur  = 5;
+  fieldCtx.beginPath();
+  fieldCtx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    fieldCtx.lineTo(pts[i].x, pts[i].y);
+  }
+  fieldCtx.stroke();
+  fieldCtx.shadowBlur = 0;                 // desactivamos el halo para las flechas
+
+  // --- 2) Dibujamos las puntas de flecha a lo largo de la línea ---
+  for (let i = ARROW_EVERY; i < pts.length - 1; i += ARROW_EVERY) {
+    drawFieldArrow(pts[i], pts[i + 1], dir);
+  }
+}
+
+/** Siembra líneas alrededor de una carga concreta. */
+function seedFromCharge(c, dir) {
+  const n = Math.min(28, Math.max(6, Math.round(Math.abs(c.q) * 10)));
+  const r0 = 13; // radio de siembra
+
+  for (let i = 0; i < n; i++) {
+    const ang = (i / n) * Math.PI * 2 + (c.q > 0 ? 0 : 0.21);
+    const sx  = c.x + Math.cos(ang) * r0;
+    const sy  = c.y + Math.sin(ang) * r0;
+    traceLine(sx, sy, dir);
+  }
+}
+
+/** Recalcula TODAS las líneas de campo sobre la capa fieldCv. */
+function renderFieldLines() {
+  fieldCtx.clearRect(0, 0, W, H);
+
+  if (charges.length === 0) return;
+
+  /* --- Estilo de las líneas (más gruesas y más visibles) --- */
+  fieldCtx.lineWidth   = LINE_WIDTH;
+  fieldCtx.lineCap     = 'round';
+  fieldCtx.lineJoin    = 'round';
+  fieldCtx.strokeStyle = 'rgba(140, 205, 255, 0.58)';
+  fieldCtx.fillStyle   = 'rgba(200, 235, 255, 0.95)';  // color de las flechas
+
+  // ¿Hay alguna carga positiva? Si la hay, sembramos solo desde ellas.
+  const hasPos = charges.some(function (c) { return c.q > 0; });
+
+  if (hasPos) {
+    for (let i = 0; i < charges.length; i++) {
+      if (charges[i].q > 0) seedFromCharge(charges[i], 1);
+    }
+  } else {
+    // Solo cargas negativas: trazamos "hacia atrás" desde ellas
+    for (let i = 0; i < charges.length; i++) {
+      if (charges[i].q < 0) seedFromCharge(charges[i], -1);
+    }
+  }
+}
+
+/* ============================================================
+   7. MÓDULO 2: MAPA DE CALOR DEL POTENCIAL ELÉCTRICO
+   ------------------------------------------------------------
+   Se calcula V en una rejilla de baja resolución y se escala
+   con suavizado para obtener un degradado continuo.
+   Rojo = potencial positivo · Azul = potencial negativo.
+   ============================================================ */
+
+function renderHeat() {
+  const cols = Math.max(1, Math.ceil(W / BLOCK));
+  const rows = Math.max(1, Math.ceil(H / BLOCK));
+
+  heatSmall.width  = cols;
+  heatSmall.height = rows;
+
+  const img  = heatSmallCtx.createImageData(cols, rows);
+  const data = img.data;
+
+  for (let j = 0; j < rows; j++) {
+    const y = j * BLOCK + BLOCK * 0.5;
+
+    for (let i = 0; i < cols; i++) {
+      const x = i * BLOCK + BLOCK * 0.5;
+
+      // Potencial en el centro del bloque
+      let v = 0;
+      for (let k = 0; k < charges.length; k++) {
+        const c  = charges[k];
+        const dx = x - c.x;
+        const dy = y - c.y;
+        let r2 = dx * dx + dy * dy;
+        if (r2 < RADIO_MIN2) r2 = RADIO_MIN2;
+        v += K * c.q / Math.sqrt(r2);
+      }
+
+      // Compresión con tanh para que los valores extremos no saturen
+      const t = Math.tanh(v / 130);
+      const a = Math.min(1, Math.abs(t)) * 165;
+
+      const idx = (j * cols + i) * 4;
+
+      if (t >= 0) {
+        // Potencial positivo -> rojo
+        data[idx]     = 255;
+        data[idx + 1] = 72;
+        data[idx + 2] = 82;
+        data[idx + 3] = a;
+      } else {
+        // Potencial negativo -> azul
+        data[idx]     = 62;
+        data[idx + 1] = 132;
+        data[idx + 2] = 255;
+        data[idx + 3] = a;
+      }
+    }
+  }
+
+  heatSmallCtx.putImageData(img, 0, 0);
+
+  // Escalamos el mapa diminuto al tamaño real con interpolación suave
+  heatCtx.clearRect(0, 0, W, H);
+  heatCtx.imageSmoothingEnabled = true;
+  heatCtx.imageSmoothingQuality = 'high';
+  heatCtx.drawImage(
+    heatSmall,
+    0, 0, cols, rows,
+    0, 0, cols * BLOCK, rows * BLOCK
+  );
+}
+
+/* ============================================================
+   8. MÓDULO 3: PARTÍCULAS DE PRUEBA Y TRAYECTORIAS
+   ============================================================ */
+
+/** Crea y lanza una partícula desde un borde aleatorio del lienzo. */
+function launchParticle() {
+  const tipo = document.querySelector('input[name="ptype"]:checked').value;
+  const esElectron = (tipo === 'electron');
+
+  const q     = esElectron ? -1 : 1;
+  const m     = esElectron ? 0.40 : 2.0;     // masa relativa (visual)
+  const color = esElectron ? '#43e8ff' : '#ffb347';
+
+  const speed = parseFloat(speedSlider.value);
+
+  // --- Posición inicial: borde aleatorio, ligeramente fuera del lienzo ---
+  const M    = 22;
+  const edge = Math.floor(Math.random() * 4);
+  let x, y;
+
+  if (edge === 0)      { x = Math.random() * W; y = -M; }        // arriba
+  else if (edge === 1) { x = W + M; y = Math.random() * H; }     // derecha
+  else if (edge === 2) { x = Math.random() * W; y = H + M; }     // abajo
+  else                 { x = -M; y = Math.random() * H; }        // izquierda
+
+  // --- Dirección: hacia el centro de cargas (o al centro del lienzo) ---
+  let tx = W / 2, ty = H / 2;
+  if (charges.length > 0) {
+    let sx = 0, sy = 0;
+    for (let i = 0; i < charges.length; i++) { sx += charges[i].x; sy += charges[i].y; }
+    tx = sx / charges.length;
+    ty = sy / charges.length;
+  }
+
+  const dx  = tx - x;
+  const dy  = ty - y;
+  const ang = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.7;
+
+  particles.push({
+    x: x, y: y,
+    vx: Math.cos(ang) * speed,
+    vy: Math.sin(ang) * speed,
+    q: q,
+    m: m,
+    color: color
+  });
+
+  // Límite de partículas simultáneas
+  while (particles.length > MAX_PART) particles.shift();
+}
+
+/**
+ * Avanza la física de todas las partículas (Fuerza de Coulomb)
+ * y dibuja el rastro sobre la capa trailCv.
+ */
+function stepParticles() {
+  if (paused) return;
+
+  // --- Desvanecimiento progresivo del rastro (borrado suave) ---
+  trailCtx.globalCompositeOperation = 'destination-out';
+  trailCtx.fillStyle = 'rgba(0, 0, 0, 0.030)';
+  trailCtx.fillRect(0, 0, W, H);
+  trailCtx.globalCompositeOperation = 'source-over';
+
+  trailCtx.lineCap   = 'round';
+  trailCtx.lineJoin  = 'round';
+  trailCtx.lineWidth = 3;          // rastro un poco más grueso (antes 2)
+
+  const SUB = 4;          // subpasos por fotograma (estabilidad)
+  const dt  = 1 / SUB;
+
+  for (let k = particles.length - 1; k >= 0; k--) {
+    const p = particles[k];
+
+    const px = p.x;       // posición previa (para el segmento de rastro)
+    const py = p.y;
+
+    // --- Integración en subpasos (método de Euler semi-implícito) ---
+    for (let s = 0; s < SUB; s++) {
+      const f  = fieldAt(p.x, p.y);
+      const ax = FORCE_K * p.q * f.ex / p.m;   // F = q·E  ->  a = F/m
+      const ay = FORCE_K * p.q * f.ey / p.m;
+
+      p.vx += ax * dt;
+      p.vy += ay * dt;
+      p.x  += p.vx * dt;
+      p.y  += p.vy * dt;
+    }
+
+    // --- Rastro de la trayectoria ---
+    trailCtx.globalAlpha = 0.9;
+    trailCtx.strokeStyle = p.color;
+    trailCtx.beginPath();
+    trailCtx.moveTo(px, py);
+    trailCtx.lineTo(p.x, p.y);
+    trailCtx.stroke();
+    trailCtx.globalAlpha = 1;
+
+    // --- Eliminar partículas que se alejan demasiado ---
+    const MARGIN = 700;
+    if (p.x < -MARGIN || p.x > W + MARGIN || p.y < -MARGIN || p.y > H + MARGIN) {
+      particles.splice(k, 1);
+    }
+  }
+}
+
+/* ============================================================
+   9. DIBUJO DEL FONDO, CARGAS Y PARTÍCULAS
+   ============================================================ */
+
+/** Rejilla tenue de referencia. */
+function drawGrid() {
+  if (!showGrid) return;
+
+  ctx.strokeStyle = 'rgba(120, 170, 230, 0.055)';
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+
+  const step = 50;
+  for (let x = 0; x <= W; x += step) {
+    ctx.moveTo(x + 0.5, 0);
+    ctx.lineTo(x + 0.5, H);
+  }
+  for (let y = 0; y <= H; y += step) {
+    ctx.moveTo(0, y + 0.5);
+    ctx.lineTo(W, y + 0.5);
+  }
+  ctx.stroke();
+}
+
+/** Dibuja todas las cargas puntuales. */
+function drawCharges() {
+  for (let i = 0; i < charges.length; i++) {
+    const c     = charges[i];
+    const esPos = c.q > 0;
+    const r     = 9 + Math.abs(c.q) * 3.2;
+
+    // --- Halo exterior ---
+    const halo = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, r * 3.4);
+    halo.addColorStop(0, esPos ? 'rgba(255, 77, 94, 0.42)' : 'rgba(61, 139, 255, 0.42)');
+    halo.addColorStop(0.5, esPos ? 'rgba(255, 77, 94, 0.12)' : 'rgba(61, 139, 255, 0.12)');
+    halo.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, r * 3.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // --- Cuerpo de la carga ---
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = esPos ? '#ff4d5e' : '#3d8bff';
+    ctx.fill();
+
+    ctx.lineWidth   = 2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.stroke();
+
+    // --- Signo + / − ---
+    ctx.fillStyle    = '#ffffff';
+    ctx.font         = 'bold ' + Math.round(r * 1.45) + 'px system-ui, sans-serif';
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(esPos ? '+' : '−', c.x, c.y + 1);
+  }
+}
+
+/**
+ * Dibuja las partículas de prueba en movimiento.
+ * CAMBIO: ahora son notablemente más grandes (núcleo r=7, halo r=24)
+ * para que se distingan bien incluso a simple vista.
+ */
+function drawParticles() {
+  for (let i = 0; i < particles.length; i++) {
+    const p = particles[i];
+
+    // Halo exterior (más amplio)
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 24);
+    g.addColorStop(0, p.color);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 24, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Núcleo más grande (antes 4.2)
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+
+    ctx.lineWidth   = 2;
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.stroke();
+  }
+}
+
+/** Pequeña cruz que marca la posición del cursor. */
+function drawCursorMarker() {
+  if (!cursor) return;
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.moveTo(cursor.x - 9, cursor.y);
+  ctx.lineTo(cursor.x + 9, cursor.y);
+  ctx.moveTo(cursor.x, cursor.y - 9);
+  ctx.lineTo(cursor.x, cursor.y + 9);
+  ctx.stroke();
+}
+
+/** Composición completa del fotograma. */
+function draw() {
+  // Fondo
+  ctx.fillStyle = '#070b11';
+  ctx.fillRect(0, 0, W, H);
+
+  drawGrid();
+
+  // Capas de fondo (se dibujan tal cual, ya están calculadas)
+  if (showHeat)  ctx.drawImage(heatCv,  0, 0, W, H);
+  if (showLines) ctx.drawImage(fieldCv, 0, 0, W, H);
+
+  // Rastro de partículas
+  ctx.drawImage(trailCv, 0, 0, W, H);
+
+  drawCharges();
+  drawParticles();
+  drawCursorMarker();
+}
+
+/* ============================================================
+   10. BUCLE PRINCIPAL DE ANIMACIÓN
+   ============================================================ */
+
+function loop() {
+  // Recalculamos las capas pesadas solo cuando algo ha cambiado
+  if (dirty) {
+    renderHeat();
+    renderFieldLines();
+    dirty = false;
+  }
+
+  stepParticles();
+  draw();
+
+  requestAnimationFrame(loop);
+}
+
+/* ============================================================
+   11. INTERACCIÓN: AÑADIR, ARRASTRAR Y ELIMINAR CARGAS
+   ============================================================ */
+
+/** Convierte coordenadas del evento a coordenadas del lienzo. */
+function getPos(e) {
+  const rect = cv.getBoundingClientRect();
+  return {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top
+  };
+}
+
+/** Devuelve la carga bajo el punto (x, y), o null. */
+function chargeAt(x, y) {
+  for (let i = charges.length - 1; i >= 0; i--) {
+    const c  = charges[i];
+    const r  = 9 + Math.abs(c.q) * 3.2 + 8; // radio + margen de agarre
+    const dx = x - c.x;
+    const dy = y - c.y;
+    if (dx * dx + dy * dy <= r * r) return c;
+  }
+  return null;
+}
+
+/** Añade una carga del signo indicado (+1 / -1) en una posición libre. */
+function addCharge(signo) {
+  if (charges.length >= MAX_CARGAS) {
+    counter.style.color = '#ff6b7a';
+    setTimeout(function () { counter.style.color = ''; }, 700);
+    return;
+  }
+
+  const mag = parseFloat(magSlider.value);
+
+  // Buscamos una posición libre cerca del centro (evita solapamientos)
+  let x = W / 2, y = H / 2;
+  const radioMax = Math.min(W, H) * 0.33;
+
+  for (let intento = 0; intento < 70; intento++) {
+    const a = Math.random() * Math.PI * 2;
+    const d = Math.random() * radioMax;
+    x = W / 2 + Math.cos(a) * d;
+    y = H / 2 + Math.sin(a) * d;
+
+    let libre = true;
+    for (let i = 0; i < charges.length; i++) {
+      const dx = charges[i].x - x;
+      const dy = charges[i].y - y;
+      if (dx * dx + dy * dy < 3600) { libre = false; break; } // 60 px
+    }
+    if (libre) break;
+  }
+
+  charges.push({ x: x, y: y, q: signo * mag });
+
+  dirty = true;
+  updateCounter();
+}
+
+/** Actualiza el contador de cargas del panel. */
+function updateCounter() {
+  counter.textContent = charges.length + ' / ' + MAX_CARGAS;
+  counter.style.color = charges.length >= MAX_CARGAS ? '#ff6b7a' : '';
+}
+
+/* ---------- Eventos de puntero sobre el lienzo ---------- */
+
+cv.addEventListener('pointerdown', function (e) {
+  const p = getPos(e);
+  const c = chargeAt(p.x, p.y);
+
+  if (c) {
+    dragging = c;
+    dragOffset.x = p.x - c.x;
+    dragOffset.y = p.y - c.y;
+    cv.style.cursor = 'grabbing';
+    if (cv.setPointerCapture) cv.setPointerCapture(e.pointerId);
+  }
+});
+
+cv.addEventListener('pointermove', function (e) {
+  const p = getPos(e);
+  cursor = p;
+
+  if (dragging) {
+    dragging.x = p.x - dragOffset.x;
+    dragging.y = p.y - dragOffset.y;
+    dirty = true;                 // el campo debe recalcularse
+    cv.style.cursor = 'grabbing';
+  } else {
+    cv.style.cursor = chargeAt(p.x, p.y) ? 'grab' : 'crosshair';
+  }
+
+  updateTooltip(p.x, p.y);
+});
+
+cv.addEventListener('pointerup', function (e) {
+  if (dragging) {
+    dragging = null;
+    cv.style.cursor = 'crosshair';
+  }
+  if (cv.releasePointerCapture && e.pointerId !== undefined) {
+    try { cv.releasePointerCapture(e.pointerId); } catch (err) { /* ignorar */ }
+  }
+});
+
+cv.addEventListener('pointercancel', function () {
+  dragging = null;
+  cv.style.cursor = 'crosshair';
+});
+
+cv.addEventListener('pointerleave', function () {
+  cursor = null;
+  tooltip.style.display = 'none';
+  roV.textContent  = '—';
+  roE.textContent  = '—';
+  roXY.textContent = '—';
+});
+
+/* Doble clic sobre una carga -> eliminarla */
+cv.addEventListener('dblclick', function (e) {
+  const p = getPos(e);
+  const c = chargeAt(p.x, p.y);
+
+  if (c) {
+    const idx = charges.indexOf(c);
+    if (idx !== -1) charges.splice(idx, 1);
+    dirty = true;
+    updateCounter();
+  }
+});
+
+/* ============================================================
+   12. TOOLTIP CON POTENCIAL Y CAMPO ELÉCTRICO
+   ============================================================ */
+
+function updateTooltip(x, y) {
+  const f = fieldAt(x, y);
+  const E = Math.sqrt(f.ex * f.ex + f.ey * f.ey);
+
+  // --- Tooltip flotante ---
+  tooltip.innerHTML =
+    '<div class="tt-title">Punto de medición</div>' +
+    '<div class="tt-row"><span>Potencial V</span><b class="pot">' + fmt(f.v) + ' V</b></div>' +
+    '<div class="tt-row"><span>Campo |E|</span><b class="cmp">' + fmt(E) + ' N/C</b></div>' +
+    '<div class="tt-row"><span>x , y</span><b>' +
+        x.toFixed(0) + ' , ' + y.toFixed(0) + '</b></div>';
+
+  tooltip.style.display = 'block';
+
+  // Posicionamiento inteligente (evita salirse del lienzo)
+  const PAD = 16;
+  const tw  = tooltip.offsetWidth;
+  const th  = tooltip.offsetHeight;
+
+  let tx = x + PAD;
+  let ty = y + PAD;
+
+  if (tx + tw > W - 6) tx = x - tw - PAD;
+  if (ty + th > H - 6) ty = y - th - PAD;
+  if (tx < 6) tx = 6;
+  if (ty < 6) ty = 6;
+
+  tooltip.style.left = tx + 'px';
+  tooltip.style.top  = ty + 'px';
+
+  // --- Lectura en el panel lateral ---
+  roV.textContent  = fmt(f.v) + ' V';
+  roE.textContent  = fmt(E) + ' N/C';
+  roXY.textContent = x.toFixed(0) + ', ' + y.toFixed(0);
+}
+
+/* ============================================================
+   13. EVENTOS DE LA INTERFAZ (PANEL DE CONTROL)
+   ============================================================ */
+
+/* --- Añadir cargas --- */
+btnAddPos.addEventListener('click', function () { addCharge(+1); });
+btnAddNeg.addEventListener('click', function () { addCharge(-1); });
+
+/* --- Magnitud de la carga --- */
+magSlider.addEventListener('input', function () {
+  magVal.textContent = parseFloat(magSlider.value).toFixed(1) + ' nC';
+});
+
+/* --- Velocidad inicial de la partícula --- */
+speedSlider.addEventListener('input', function () {
+  speedVal.textContent = parseFloat(speedSlider.value).toFixed(1);
+});
+
+/* --- Visibilidad de las capas --- */
+chkHeat.addEventListener('change',  function () { showHeat  = chkHeat.checked; });
+chkLines.addEventListener('change', function () { showLines = chkLines.checked; });
+chkGrid.addEventListener('change',  function () { showGrid  = chkGrid.checked; });
+
+/* --- Lanzar partícula --- */
+btnLaunch.addEventListener('click', function () {
+  launchParticle();
+});
+
+/* --- Pausar / Reanudar --- */
+btnPause.addEventListener('click', function () {
+  paused = !paused;
+  btnPause.textContent = paused ? '▶ Reanudar' : '⏸ Pausar';
+  btnPause.style.color = paused ? '#41d1a7' : '';
+  btnPause.style.borderColor = paused ? '#2b9a7c' : '';
+});
+
+/* --- Limpiar solo las trayectorias y partículas --- */
+btnClearTrails.addEventListener('click', function () {
+  particles.length = 0;
+  trailCtx.clearRect(0, 0, W, H);
+});
+
+/* --- Limpiar TODO el lienzo --- */
+btnClearAll.addEventListener('click', function () {
+  charges.length = 0;
+  particles.length = 0;
+  trailCtx.clearRect(0, 0, W, H);
+  tooltip.style.display = 'none';
+  roV.textContent = '—';
+  roE.textContent = '—';
+  roXY.textContent = '—';
+  dirty = true;
+  updateCounter();
+});
+
+/* ============================================================
+   14. INICIALIZACIÓN
+   ============================================================ */
+
+window.addEventListener('resize', resize);
+
+function init() {
+  resize();
+
+  // Configuración inicial de etiquetas
+  magVal.textContent   = parseFloat(magSlider.value).toFixed(1) + ' nC';
+  speedVal.textContent = parseFloat(speedSlider.value).toFixed(1);
+  updateCounter();
+
+  // Cargas de ejemplo para que el simulador no arranque vacío
+  const cx = W / 2;
+  const cy = H / 2;
+  const sep = Math.min(W, H) * 0.16;
+
+  charges.push({ x: cx - sep, y: cy, q: +1.5 });  // carga positiva
+  charges.push({ x: cx + sep, y: cy, q: -1.5 });  // carga negativa
+  updateCounter();
+
+  dirty = true;
+
+  // Arrancamos el bucle de animación
+  requestAnimationFrame(loop);
+}
+
+init();
+
+})();
+</script>
+</body>
+</html>

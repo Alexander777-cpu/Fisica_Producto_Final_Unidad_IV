@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>Laboratorio Interactivo de Física · Unidades I – III</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   BASE
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#05070d;
+  --text:#e6f1ff;
+  --muted:#8198b8;
+  --accent:#00f2fe;
+  --mono:'SF Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{
+  height:100%;width:100%;overflow:hidden;
+  background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  user-select:none;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   FONDO 3D
+   ══════════════════════════════════════════════════════════════════ */
+#bg{position:fixed;inset:0;z-index:0;display:block;}
+#vignette{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 45%, rgba(5,7,13,0) 0%, rgba(5,7,13,.55) 62%, rgba(5,7,13,.94) 100%),
+    linear-gradient(180deg, rgba(5,7,13,.55) 0%, rgba(5,7,13,0) 22%, rgba(5,7,13,0) 74%, rgba(5,7,13,.75) 100%);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   TOPBAR
+   ══════════════════════════════════════════════════════════════════ */
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:20;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:22px 28px;pointer-events:none;
+}
+.topbar > *{pointer-events:auto;}
+
+.brand{display:flex;align-items:center;gap:14px;}
+.logo{
+  width:42px;height:42px;border-radius:13px;position:relative;overflow:hidden;
+  box-shadow:0 0 30px rgba(0,242,254,.38),inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.logo::before{
+  content:"";position:absolute;inset:-70%;
+  background:conic-gradient(from 0deg,#00f2fe,#4facfe,#a06bff,#fa709a,#00f2fe);
+  animation:spin 9s linear infinite;
+}
+.logo::after{
+  content:"";position:absolute;inset:4px;border-radius:9px;
+  background:#070a12;
+  box-shadow:inset 0 0 14px rgba(0,242,254,.22);
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.brand h1{
+  font-size:12.5px;letter-spacing:.24em;font-weight:800;
+  color:#eaf6ff;text-transform:uppercase;
+}
+.brand p{
+  font-size:10px;letter-spacing:.15em;color:#6f8aa9;
+  margin-top:3px;text-transform:uppercase;font-weight:600;
+}
+
+.hint{
+  display:flex;align-items:center;gap:9px;
+  font-size:11px;color:#93aac8;font-weight:600;letter-spacing:.04em;
+  background:rgba(13,20,34,.62);
+  border:1px solid rgba(255,255,255,.07);
+  padding:9px 16px;border-radius:999px;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  box-shadow:0 8px 26px -10px rgba(0,0,0,.8);
+}
+.key{
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  padding:3px 7px;border-radius:6px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.11);
+  color:#cfe6ff;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ESCENARIO 3D Y CARRUSEL
+   ══════════════════════════════════════════════════════════════════ */
+.stage3d{
+  position:fixed;inset:0;z-index:5;
+  display:grid;place-items:center;
+  perspective:1700px;
+  perspective-origin:50% 46%;
+  touch-action:none;
+  cursor:grab;
+}
+.stage3d:active{cursor:grabbing;}
+
+.carousel{
+  position:relative;width:100%;height:100%;
+  transform-style:preserve-3d;
+}
+
+/* ─────────── TARJETA ─────────── */
+.card{
+  position:absolute;left:50%;top:50%;
+  width:min(720px,88vw);
+  height:min(520px,74vh);
+  transform-style:preserve-3d;
+  will-change:transform,opacity;
+  transition:transform .68s cubic-bezier(.22,.85,.28,1), opacity .55s ease;
+  cursor:pointer;
+}
+.carousel.dragging .card{transition:none;}
+
+.card-inner{
+  position:relative;width:100%;height:100%;
+  display:flex;flex-direction:column;
+  padding:40px 44px 34px;
+  border-radius:28px;
+  background:
+    linear-gradient(157deg, rgba(21,30,50,.90) 0%, rgba(10,15,26,.965) 58%, rgba(7,11,20,.98) 100%);
+  border:1px solid rgba(255,255,255,.075);
+  box-shadow:
+    0 50px 100px -34px rgba(0,0,0,.95),
+    0 0 0 1px rgba(255,255,255,.02) inset,
+    0 1px 0 rgba(255,255,255,.07) inset;
+  backdrop-filter:blur(18px) saturate(135%);
+  -webkit-backdrop-filter:blur(18px) saturate(135%);
+  overflow:hidden;
+  transition:box-shadow .45s ease, border-color .45s ease, transform .3s cubic-bezier(.22,.85,.28,1);
+  transform-style:preserve-3d;
+}
+.card.active .card-inner{
+  border-color:rgba(255,255,255,.13);
+  box-shadow:
+    0 50px 110px -30px rgba(0,0,0,.95),
+    0 0 70px -22px var(--c1a),
+    0 0 0 1px rgba(255,255,255,.03) inset,
+    0 1px 0 rgba(255,255,255,.09) inset;
+}
+
+/* animación de pulso al hacer clic para abrir */
+.card.pulse .card-inner{
+  animation:cardPulse .68s cubic-bezier(.22,.85,.28,1);
+}
+@keyframes cardPulse{
+  0%, 100%{
+    border-color:rgba(255,255,255,.13);
+    box-shadow:
+      0 50px 110px -30px rgba(0,0,0,.95),
+      0 0 70px -22px var(--c1a),
+      0 0 0 1px rgba(255,255,255,.03) inset,
+      0 1px 0 rgba(255,255,255,.09) inset;
+  }
+  45%{
+    border-color:var(--c1);
+    box-shadow:
+      0 50px 110px -30px rgba(0,0,0,.95),
+      0 0 140px -8px var(--c1a),
+      0 0 0 2px var(--c1) inset,
+      0 1px 0 rgba(255,255,255,.09) inset;
+  }
+}
+
+/* barra superior de acento */
+.card-inner::before{
+  content:"";position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg, transparent 0%, var(--c1) 28%, var(--c2) 72%, transparent 100%);
+  opacity:.8;
+}
+/* halo difuso */
+.card-inner::after{
+  content:"";position:absolute;
+  width:460px;height:460px;border-radius:50%;
+  right:-170px;top:-190px;pointer-events:none;
+  background:radial-gradient(circle, var(--c1a) 0%, transparent 68%);
+  filter:blur(24px);
+  opacity:.85;
+}
+
+/* numeral gigante de fondo */
+.num{
+  position:absolute;right:26px;bottom:-56px;
+  font-size:clamp(190px,24vw,290px);
+  font-weight:900;line-height:.78;letter-spacing:-.05em;
+  background:linear-gradient(180deg, var(--c1a) 0%, rgba(255,255,255,0) 88%);
+  -webkit-background-clip:text;background-clip:text;
+  color:transparent;
+  pointer-events:none;user-select:none;
+  font-family:Georgia,'Times New Roman',serif;
+}
+
+/* contenido */
+.kicker{
+  display:inline-flex;align-items:center;gap:9px;
+  font-size:11px;font-weight:800;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--c1);
+  margin-bottom:20px;
+}
+.kicker .dot{
+  width:7px;height:7px;border-radius:50%;background:var(--c1);
+  box-shadow:0 0 14px var(--c1);
+  animation:blink 2.2s ease-in-out infinite;
+}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.25;}}
+
+.card h2{
+  font-size:clamp(25px,3.1vw,37px);
+  line-height:1.08;font-weight:800;letter-spacing:-.022em;
+  color:#f2f9ff;max-width:86%;
+  margin-bottom:16px;
+  text-wrap:balance;
+}
+.card p{
+  font-size:13.5px;line-height:1.68;color:#90a8c6;
+  max-width:88%;margin-bottom:24px;font-weight:450;
+}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:auto;}
+.chips span{
+  font-size:11px;font-weight:600;letter-spacing:.015em;
+  padding:6px 13px;border-radius:999px;
+  background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.075);
+  color:#b7cde6;
+}
+
+.card-foot{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:18px;margin-top:28px;flex-wrap:wrap;
+}
+.open{
+  display:inline-flex;align-items:center;gap:11px;
+  padding:14px 26px;border-radius:15px;
+  text-decoration:none;
+  font-size:13.5px;font-weight:800;letter-spacing:.03em;
+  color:#04121a;
+  background:linear-gradient(118deg, var(--c1) 0%, var(--c2) 100%);
+  box-shadow:
+    0 14px 34px -10px var(--c1a),
+    inset 0 1px 0 rgba(255,255,255,.45);
+  transition:transform .26s cubic-bezier(.22,.85,.28,1), box-shadow .26s, filter .26s;
+}
+.open:hover{
+  transform:translateY(-3px) scale(1.025);
+  filter:brightness(1.09) saturate(1.06);
+  box-shadow:
+    0 20px 44px -10px var(--c1a),
+    inset 0 1px 0 rgba(255,255,255,.55);
+}
+.open:active{transform:translateY(-1px) scale(.995);}
+.open span{transition:transform .26s cubic-bezier(.22,.85,.28,1);display:inline-block;}
+.open:hover span{transform:translate(4px,-3px);}
+
+.meta{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+  color:#65809f;text-transform:uppercase;font-weight:600;
+}
+
+/* tarjetas no activas: ligeramente atenuadas y sin botón resaltado */
+.card:not(.active) .open{filter:saturate(.72) brightness(.9);}
+.card:not(.active) .card-inner{box-shadow:0 40px 90px -34px rgba(0,0,0,.95), inset 0 1px 0 rgba(255,255,255,.05);}
+
+/* ══════════════════════════════════════════════════════════════════
+   NAVEGACIÓN
+   ══════════════════════════════════════════════════════════════════ */
+.nav-btn{
+  position:fixed;top:50%;transform:translateY(-50%);
+  z-index:18;width:50px;height:50px;border-radius:50%;
+  display:grid;place-items:center;
+  cursor:pointer;font-size:17px;color:#cfe6ff;
+  background:rgba(12,19,32,.68);
+  border:1px solid rgba(255,255,255,.09);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:0 12px 34px -14px rgba(0,0,0,.9);
+  transition:all .28s cubic-bezier(.22,.85,.28,1);
+}
+.nav-btn:hover{
+  background:rgba(0,242,254,.14);
+  border-color:var(--accent);
+  color:#eafcff;
+  box-shadow:0 0 30px -4px var(--accent),0 12px 34px -14px rgba(0,0,0,.9);
+}
+.nav-btn:active{transform:translateY(-50%) scale(.94);}
+.nav-btn.off{opacity:.22;pointer-events:none;}
+#prev{left:24px;}
+#next{right:24px;}
+
+.dots{
+  position:fixed;left:50%;bottom:34px;transform:translateX(-50%);
+  z-index:18;display:flex;align-items:center;gap:10px;
+  padding:11px 18px;border-radius:999px;
+  background:rgba(10,16,28,.62);
+  border:1px solid rgba(255,255,255,.07);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:0 14px 40px -18px rgba(0,0,0,.95);
+}
+.dot{
+  width:9px;height:9px;border-radius:999px;border:none;padding:0;
+  background:rgba(255,255,255,.18);cursor:pointer;
+  transition:all .35s cubic-bezier(.22,.85,.28,1);
+}
+.dot:hover{background:rgba(255,255,255,.38);}
+.dot.active{
+  width:32px;
+  background:var(--accent);
+  box-shadow:0 0 16px var(--accent);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   LOADER
+   ══════════════════════════════════════════════════════════════════ */
+#loader{
+  position:fixed;inset:0;z-index:60;
+  display:grid;place-items:center;
+  background:#05070d;
+  transition:opacity .65s ease, visibility .65s ease;
+}
+#loader.hide{opacity:0;visibility:hidden;}
+.loader-wrap{display:flex;flex-direction:column;align-items:center;gap:22px;}
+.loader-ring{
+  width:56px;height:56px;border-radius:50%;
+  border:2px solid rgba(0,242,254,.14);
+  border-top-color:#00f2fe;
+  animation:spin 1s linear infinite;
+  box-shadow:0 0 40px -6px rgba(0,242,254,.55);
+}
+.loader-wrap span{
+  font-size:10.5px;letter-spacing:.32em;color:#5d7b9c;
+  text-transform:uppercase;font-weight:700;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ANIMACIÓN DE ENTRADA
+   ══════════════════════════════════════════════════════════════════ */
+.stage3d,.topbar,.dots,.nav-btn{
+  opacity:0;transform:translateY(22px);
+  transition:opacity .9s ease, transform .9s cubic-bezier(.22,.85,.28,1);
+}
+.nav-btn{transform:translateY(calc(-50% + 22px));}
+body.ready .stage3d{opacity:1;transform:translateY(0);}
+body.ready .topbar{opacity:1;transform:translateY(0);}
+body.ready .dots{opacity:1;transform:translateX(-50%) translateY(0);}
+body.ready .nav-btn{opacity:1;transform:translateY(-50%);}
+
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width:900px){
+  .card{width:min(620px,90vw);height:min(500px,72vh);}
+  .card-inner{padding:34px 32px 28px;}
+  .card p{max-width:100%;}
+}
+@media (max-width:640px){
+  .topbar{padding:14px 16px;}
+  .brand h1{font-size:10.5px;letter-spacing:.18em;}
+  .brand p{font-size:8.5px;}
+  .logo{width:34px;height:34px;border-radius:11px;}
+  .hint{display:none;}
+  .card{width:90vw;height:min(540px,76vh);}
+  .card-inner{padding:28px 22px 22px;border-radius:22px;}
+  .card h2{font-size:clamp(22px,6.4vw,29px);max-width:100%;}
+  .card p{font-size:12.5px;line-height:1.6;margin-bottom:18px;}
+  .chips span{font-size:10px;padding:5px 10px;}
+  .kicker{font-size:9.5px;letter-spacing:.2em;margin-bottom:15px;}
+  .card-foot{margin-top:20px;gap:12px;}
+  .open{padding:12px 20px;font-size:12px;border-radius:13px;}
+  .meta{font-size:9.5px;}
+  .nav-btn{width:40px;height:40px;font-size:14px;}
+  #prev{left:8px;} #next{right:8px;}
+  .dots{bottom:20px;padding:9px 14px;gap:8px;}
+  .num{font-size:clamp(150px,44vw,220px);}
+}
+@media (max-width:400px){
+  .card{height:min(520px,78vh);}
+  .card-foot .meta{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ FONDO 3D ══════════ -->
+<canvas id="bg"></canvas>
+<div id="vignette"></div>
+
+<!-- ══════════ TOPBAR ══════════ -->
+<header class="topbar">
+  <div class="brand">
+    <div class="logo"></div>
+    <div>
+      <h1>Laboratorio Interactivo</h1>
+      <p>Física · Unidades I – III</p>
+    </div>
+  </div>
+  <div class="hint">
+    <span class="key">←</span><span class="key">→</span> navegar
+    <span style="opacity:.4">·</span>
+    arrastra
+    <span style="opacity:.4">·</span>
+    <span class="key">1</span><span class="key">2</span><span class="key">3</span>
+    <span style="opacity:.4">·</span>
+    <span class="key">↗</span> nueva pestaña
+  </div>
+</header>
+
+<!-- ══════════ CARRUSEL ══════════ -->
+<main class="stage3d" id="stage">
+  <div class="carousel" id="carousel"></div>
+</main>
+
+<!-- ══════════ NAVEGACIÓN ══════════ -->
+<button class="nav-btn" id="prev" aria-label="Unidad anterior">‹</button>
+<button class="nav-btn" id="next" aria-label="Unidad siguiente">›</button>
+<nav class="dots" id="dots"></nav>
+
+<!-- ══════════ LOADER ══════════ -->
+<div id="loader">
+  <div class="loader-wrap">
+    <div class="loader-ring"></div>
+    <span>Iniciando laboratorio</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════
+     LIBRERÍA 3D
+     ══════════════════════════════════════════════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+"use strict";
+
+/* ╔══════════════════════════════════════════════════════════════════╗
+   ║  ⚠️  EDITA AQUÍ LOS TEXTOS Y LOS NOMBRES DE ARCHIVO              ║
+   ║                                                                  ║
+   ║  · "file"  → ruta del HTML de cada unidad (misma carpeta)        ║
+   ║  · "title", "desc", "topics" → textos que se muestran            ║
+   ║  · "color1" / "color2" → degradado de la tarjeta                 ║
+   ║                                                                  ║
+   ║  Cada módulo se abre en una NUEVA PESTAÑA, de modo que esta      ║
+   ║  página de inicio permanezca abierta y se puedan abrir cuantas   ║
+   ║  unidades se desee. Para añadir la Unidad IV basta con agregar   ║
+   ║  otro objeto al array.                                           ║
+   ╚══════════════════════════════════════════════════════════════════╝ */
+const UNITS = [
+  {
+    roman: 'I',
+    kicker: 'Unidad I',
+    title: 'Mecánica y Fluidos',
+    desc: 'Movimiento, fuerzas y comportamiento de los fluidos. Simulaciones interactivas para comprender cinemática, dinámica newtoniana, energía y estática de fluidos.',
+    topics: ['Vectores', 'Cinemática', 'Leyes de Newton', 'Trabajo y energía', 'Fluidos'],
+    color1: '#00f2fe',
+    color2: '#4facfe',
+    file: 'unidad_I.html'
+  },
+  {
+    roman: 'II',
+    kicker: 'Unidad II',
+    title: 'Electrostática y Campo Eléctrico',
+    desc: 'Cargas en reposo, ley de Coulomb, campo y potencial eléctrico, capacitancia. Visualiza líneas de campo, superficies equipotenciales y distribuciones de carga en 3D.',
+    topics: ['Carga eléctrica', 'Ley de Coulomb', 'Campo eléctrico', 'Potencial', 'Capacitancia'],
+    color1: '#a06bff',
+    color2: '#6a5cff',
+    file: 'unidad_II.html'
+  },
+  {
+    roman: 'III',
+    kicker: 'Unidad III',
+    title: 'Corriente, Resistencia y Circuitos CC',
+    desc: 'Dinámica microscópica de la corriente, ley de Ohm, efecto Joule y análisis de circuitos serie, paralelo y mixtos con instrumentación virtual y reglas de Kirchhoff.',
+    topics: ['Velocidad de deriva', 'Ley de Ohm', 'Efecto Joule', 'Series y paralelos', 'Kirchhoff'],
+    color1: '#fa709a',
+    color2: '#ffb86c',
+    file: 'unidad_III.html'
+  }
+];
+
+/* ══════════════════════════════════════════════════════════════════
+   UTILIDADES
+   ══════════════════════════════════════════════════════════════════ */
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  const n = parseInt(h.length === 3 ? h.split('').map((c) => c + c).join('') : h, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+function rgba(hex, a) {
+  const c = hexToRgb(hex);
+  return `rgba(${c.r},${c.g},${c.b},${a})`;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   FONDO 3D — THREE.JS
+   ══════════════════════════════════════════════════════════════════ */
+const bgCanvas = $('bg');
+const renderer = new THREE.WebGLRenderer({ canvas: bgCanvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x05070d, 1);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x05070d, 0.029);
+
+const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 500);
+camera.position.set(0, 0, 30);
+
+/* --- Textura de punto luminoso --- */
+function makeDotTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0.0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.28, 'rgba(200,245,255,0.92)');
+  g.addColorStop(0.62, 'rgba(90,190,255,0.34)');
+  g.addColorStop(1.0, 'rgba(20,90,190,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 64, 64);
+  const t = new THREE.CanvasTexture(c);
+  t.needsUpdate = true;
+  return t;
+}
+const DOT_TEX = makeDotTexture();
+
+/* --- Campo de estrellas / partículas --- */
+const PCOUNT = 1500;
+const pPos = new Float32Array(PCOUNT * 3);
+const pCol = new Float32Array(PCOUNT * 3);
+const pSeed = new Float32Array(PCOUNT);
+const cA = new THREE.Color(0x66e6ff);
+const cB = new THREE.Color(0xa06bff);
+const cC = new THREE.Color(0x4facfe);
+
+for (let i = 0; i < PCOUNT; i++) {
+  const i3 = i * 3;
+  pPos[i3]     = (Math.random() - 0.5) * 150;
+  pPos[i3 + 1] = (Math.random() - 0.5) * 95;
+  pPos[i3 + 2] = (Math.random() - 0.5) * 120 - 12;
+  pSeed[i] = Math.random();
+
+  const r = Math.random();
+  const col = r < 0.5 ? cA : r < 0.82 ? cC : cB;
+  const k = 0.45 + Math.random() * 0.55;
+  pCol[i3]     = col.r * k;
+  pCol[i3 + 1] = col.g * k;
+  pCol[i3 + 2] = col.b * k;
+}
+
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+pGeo.setAttribute('color', new THREE.BufferAttribute(pCol, 3));
+
+const pMat = new THREE.PointsMaterial({
+  size: 0.52,
+  map: DOT_TEX,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.85,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+  sizeAttenuation: true
+});
+const starField = new THREE.Points(pGeo, pMat);
+scene.add(starField);
+
+/* --- Icosaedro wireframe central --- */
+const wireMat = new THREE.MeshBasicMaterial({
+  color: 0x1c6b9e, wireframe: true, transparent: true, opacity: 0.30
+});
+const ico = new THREE.Mesh(new THREE.IcosahedronGeometry(9, 1), wireMat);
+ico.position.set(0, 0, -16);
+scene.add(ico);
+
+const wireMat2 = new THREE.MeshBasicMaterial({
+  color: 0x6a3fb0, wireframe: true, transparent: true, opacity: 0.20
+});
+const ico2 = new THREE.Mesh(new THREE.IcosahedronGeometry(13, 0), wireMat2);
+ico2.position.set(0, 0, -22);
+scene.add(ico2);
+
+/* --- Anillos orbitales --- */
+const ringMats = [];
+const rings = [];
+for (let i = 0; i < 3; i++) {
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0x00f2fe, transparent: true,
+    opacity: 0.13 + i * 0.04
+  });
+  ringMats.push(mat);
+  const r = 11 + i * 4.5;
+  const geo = new THREE.TorusGeometry(r, 0.018, 3, 140);
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(0, 0, -18 - i * 3);
+  m.rotation.x = Math.PI * 0.5 + (i - 1) * 0.5;
+  m.rotation.y = i * 0.9;
+  rings.push(m);
+  scene.add(m);
+}
+
+/* --- Esferas brillantes flotantes --- */
+const glowSpheres = [];
+for (let i = 0; i < 7; i++) {
+  const mat = new THREE.MeshBasicMaterial({
+    color: i % 2 ? 0x00f2fe : 0xa06bff,
+    transparent: true, opacity: 0.55,
+    blending: THREE.AdditiveBlending, depthWrite: false
+  });
+  const s = new THREE.Mesh(new THREE.SphereGeometry(0.10 + Math.random() * 0.11, 10, 8), mat);
+  s.position.set(
+    (Math.random() - 0.5) * 60,
+    (Math.random() - 0.5) * 34,
+    -6 - Math.random() * 30
+  );
+  s.userData.ph = Math.random() * Math.PI * 2;
+  s.userData.sp = 0.25 + Math.random() * 0.5;
+  glowSpheres.push(s);
+  scene.add(s);
+}
+
+/* --- Luz de acento --- */
+const accentLight = new THREE.PointLight(0x00f2fe, 1.1, 140);
+accentLight.position.set(0, 0, 8);
+scene.add(accentLight);
+
+/* --- Color de acento interpolado --- */
+const accentNow = new THREE.Color(0x00f2fe);
+const accentTarget = new THREE.Color(0x00f2fe);
+function setAccent(hex) { accentTarget.set(hex); }
+
+/* --- Parallax de cámara --- */
+let mx = 0, my = 0;
+window.addEventListener('pointermove', (e) => {
+  mx = (e.clientX / window.innerWidth) * 2 - 1;
+  my = (e.clientY / window.innerHeight) * 2 - 1;
+});
+
+/* --- Bucle del fondo --- */
+const bgClock = new THREE.Clock();
+function animateBG() {
+  requestAnimationFrame(animateBG);
+  const t = bgClock.getElapsedTime();
+
+  accentNow.lerp(accentTarget, 0.045);
+  wireMat.color.copy(accentNow).multiplyScalar(0.55);
+  ringMats.forEach((m) => m.color.copy(accentNow));
+  accentLight.color.copy(accentNow);
+
+  ico.rotation.x = t * 0.055;
+  ico.rotation.y = t * 0.085;
+  ico2.rotation.x = -t * 0.032;
+  ico2.rotation.y = -t * 0.048;
+
+  rings.forEach((m, i) => {
+    m.rotation.z = t * (0.06 + i * 0.03) * (i % 2 ? 1 : -1);
+    m.rotation.y += 0.0009 * (i + 1);
+  });
+
+  for (let i = 0; i < glowSpheres.length; i++) {
+    const s = glowSpheres[i];
+    s.position.y += Math.sin(t * s.userData.sp + s.userData.ph) * 0.006;
+    s.position.x += Math.cos(t * s.userData.sp * 0.7 + s.userData.ph) * 0.004;
+    s.material.opacity = 0.30 + 0.30 * (0.5 + 0.5 * Math.sin(t * 1.1 + s.userData.ph));
+  }
+
+  const posAttr = starField.geometry.attributes.position;
+  const arr = posAttr.array;
+  for (let i = 0; i < PCOUNT; i++) {
+    const i3 = i * 3;
+    arr[i3 + 1] += 0.006 + pSeed[i] * 0.012;
+    if (arr[i3 + 1] > 48) arr[i3 + 1] = -48;
+  }
+  posAttr.needsUpdate = true;
+  starField.rotation.z = t * 0.008;
+
+  camera.position.x += (mx * 5.5 - camera.position.x) * 0.035;
+  camera.position.y += (-my * 3.8 - camera.position.y) * 0.035;
+  camera.lookAt(0, 0, 0);
+
+  renderer.render(scene, camera);
+}
+animateBG();
+
+/* ══════════════════════════════════════════════════════════════════
+   CARRUSEL — CONSTRUCCIÓN
+   ══════════════════════════════════════════════════════════════════ */
+const carouselEl = $('carousel');
+const stageEl = $('stage');
+const dotsEl = $('dots');
+const cards = [];
+const dots = [];
+
+let index = 0;
+let dragOffset = 0;
+let dragging = false;
+let startX = 0;
+let moved = 0;
+
+UNITS.forEach((u, i) => {
+  /* ---------- tarjeta ---------- */
+  const card = document.createElement('article');
+  card.className = 'card';
+  card.style.setProperty('--c1', u.color1);
+  card.style.setProperty('--c2', u.color2);
+  card.style.setProperty('--c1a', rgba(u.color1, 0.38));
+  card.style.setProperty('--c2a', rgba(u.color2, 0.30));
+
+  const chipsHTML = u.topics.map((t) => `<span>${t}</span>`).join('');
+
+  card.innerHTML = `
+    <div class="card-inner">
+      <div class="num">${u.roman}</div>
+      <div class="kicker"><span class="dot"></span>${u.kicker}</div>
+      <h2>${u.title}</h2>
+      <p>${u.desc}</p>
+      <div class="chips">${chipsHTML}</div>
+      <div class="card-foot">
+        <a class="open" href="${u.file}" target="_blank" rel="noopener noreferrer" title="Abrir en una nueva pestaña">Explorar módulo <span>↗</span></a>
+        <div class="meta">Nueva pestaña</div>
+      </div>
+    </div>
+  `;
+
+  carouselEl.appendChild(card);
+  cards.push(card);
+
+  /* ---------- clic en la tarjeta ---------- */
+  card.addEventListener('click', (e) => {
+    if (moved > 12) return;
+    if (e.target.closest('.open')) return;
+    if (i !== index) go(i);
+  });
+
+  /* inclinación 3D con el puntero */
+  const inner = card.querySelector('.card-inner');
+  card.addEventListener('pointermove', (e) => {
+    if (dragging || i !== index) return;
+    const r = card.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    inner.style.transform =
+      `rotateY(${px * 9}deg) rotateX(${-py * 9}deg) translateZ(14px)`;
+  });
+  card.addEventListener('pointerleave', () => {
+    inner.style.transform = '';
+  });
+
+  /* ---------- botón "Explorar módulo" ----------
+     El <a> tiene target="_blank", así que el navegador
+     abre la unidad en una nueva pestaña manteniendo esta
+     página de inicio siempre disponible. */
+  const link = card.querySelector('.open');
+  link.addEventListener('click', (e) => {
+    if (moved > 12) {
+      e.preventDefault();
+      return;
+    }
+    /* No cancelamos el evento: el navegador abre la pestaña */
+    pulseCard(card);
+  });
+
+  /* ---------- punto de navegación ---------- */
+  const dot = document.createElement('button');
+  dot.className = 'dot';
+  dot.setAttribute('aria-label', 'Ir a ' + u.kicker);
+  dot.addEventListener('click', () => go(i));
+  dotsEl.appendChild(dot);
+  dots.push(dot);
+});
+
+/* Animación de pulso al abrir */
+function pulseCard(card) {
+  if (!card) return;
+  card.classList.remove('pulse');
+  void card.offsetWidth;
+  card.classList.add('pulse');
+  setTimeout(() => card.classList.remove('pulse'), 720);
+}
+
+/* Apertura en nueva pestaña para el teclado (Enter) */
+let lastOpenTime = 0;
+function openUnit(href) {
+  const now = performance.now();
+  if (now - lastOpenTime < 500) return;
+  lastOpenTime = now;
+  const w = window.open(href, '_blank', 'noopener,noreferrer');
+  if (!w) {
+    /* Si el bloqueador de popups lo impide, abrimos en la misma pestaña */
+    window.location.href = href;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   LAYOUT DEL CARRUSEL
+   ══════════════════════════════════════════════════════════════════ */
+function layout() {
+  const w = window.innerWidth;
+  const spacing = w < 760 ? w * 0.80 : Math.min(580, w * 0.42);
+
+  cards.forEach((card, i) => {
+    const d = i - index;
+    const ad = Math.abs(d);
+
+    const x = d * spacing + dragOffset;
+    const z = -ad * 300;
+    const ry = -d * 33;
+    const sc = 1 - Math.min(ad, 2) * 0.10;
+    const op = ad > 2 ? 0 : 1 - ad * 0.44;
+
+    card.style.transform =
+      `translate(-50%,-50%) translate3d(${x}px,0,${z}px) rotateY(${ry}deg) scale(${sc})`;
+    card.style.opacity = op;
+    card.style.zIndex = String(100 - ad);
+    card.style.pointerEvents = ad > 2 ? 'none' : 'auto';
+    card.classList.toggle('active', d === 0);
+  });
+
+  dots.forEach((dot, i) => {
+    const on = i === index;
+    dot.classList.toggle('active', on);
+    dot.style.background = on ? UNITS[i].color1 : 'rgba(255,255,255,.18)';
+    dot.style.boxShadow = on ? `0 0 16px ${UNITS[i].color1}` : 'none';
+  });
+
+  $('prev').classList.toggle('off', index === 0);
+  $('next').classList.toggle('off', index === UNITS.length - 1);
+
+  const c = UNITS[index].color1;
+  document.documentElement.style.setProperty('--accent', c);
+  setAccent(c);
+}
+
+function go(i) {
+  index = clamp(i, 0, UNITS.length - 1);
+  dragOffset = 0;
+  layout();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ARRASTRE
+   ══════════════════════════════════════════════════════════════════ */
+stageEl.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('.nav-btn, .dots')) return;
+  dragging = true;
+  startX = e.clientX;
+  dragOffset = 0;
+  moved = 0;
+  carouselEl.classList.add('dragging');
+});
+
+window.addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  dragOffset = e.clientX - startX;
+  moved = Math.abs(dragOffset);
+  layout();
+});
+
+function endDrag() {
+  if (!dragging) return;
+  dragging = false;
+  carouselEl.classList.remove('dragging');
+
+  const dx = dragOffset;
+  dragOffset = 0;
+  void carouselEl.offsetHeight;
+
+  const threshold = Math.min(110, window.innerWidth * 0.10);
+  if (dx < -threshold) go(index + 1);
+  else if (dx > threshold) go(index - 1);
+  else layout();
+}
+window.addEventListener('pointerup', endDrag);
+window.addEventListener('pointercancel', endDrag);
+
+/* ══════════════════════════════════════════════════════════════════
+   TECLADO / RUEDA / FLECHAS
+   ══════════════════════════════════════════════════════════════════ */
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') { e.preventDefault(); go(index + 1); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); go(index - 1); }
+  else if (e.key === 'Enter') {
+    e.preventDefault();
+    pulseCard(cards[index]);
+    openUnit(UNITS[index].file);
+  }
+  else if (e.key === 'Home') { e.preventDefault(); go(0); }
+  else if (e.key === 'End') { e.preventDefault(); go(UNITS.length - 1); }
+  else if (/^[1-9]$/.test(e.key)) {
+    const n = parseInt(e.key, 10) - 1;
+    if (n < UNITS.length) { e.preventDefault(); go(n); }
+  }
+});
+
+let wheelLock = 0;
+stageEl.addEventListener('wheel', (e) => {
+  const now = performance.now();
+  if (now - wheelLock < 480) return;
+  if (Math.abs(e.deltaY) < 18 && Math.abs(e.deltaX) < 18) return;
+  wheelLock = now;
+  if (e.deltaY > 0 || e.deltaX > 0) go(index + 1);
+  else go(index - 1);
+}, { passive: true });
+
+$('prev').addEventListener('click', () => go(index - 1));
+$('next').addEventListener('click', () => go(index + 1));
+
+/* ══════════════════════════════════════════════════════════════════
+   RESIZE
+   ══════════════════════════════════════════════════════════════════ */
+function onResize() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(w, h);
+
+  layout();
+}
+window.addEventListener('resize', onResize);
+window.addEventListener('orientationchange', () => setTimeout(onResize, 220));
+
+/* ══════════════════════════════════════════════════════════════════
+   ARRANQUE
+   ══════════════════════════════════════════════════════════════════ */
+layout();
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    $('loader').classList.add('hide');
+    document.body.classList.add('ready');
+  }, 420);
+});
+
+setTimeout(() => {
+  $('loader').classList.add('hide');
+  document.body.classList.add('ready');
+}, 3500);
+</script>
+</body>
+</html>
