@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Simulador 3D · Fuerza de Lorentz (Integrador de Boris)</title>
+
+<style>
+  :root {
+    --bg:        #05070d;
+    --panel-bg:  rgba(10, 16, 28, 0.82);
+    --border:    rgba(70, 150, 220, 0.28);
+    --text:      #dbe7f5;
+    --text-dim:  #7f9ab5;
+    --accent:    #00e5ff;
+    --accent-2:  #ff2d55;
+    --ok:        #00ff9d;
+    --warn:      #ffe600;
+    --violeta:   #8b5cf6;
+    --naranja:   #ff9f1c;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; margin: 0; }
+
+  body {
+    background: radial-gradient(circle at 50% 0%, #0a1424 0%, #05070d 65%);
+    color: var(--text);
+    font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #scene-container { position: fixed; inset: 0; }
+  canvas { display: block; }
+
+  /* =========================================================
+     BOTÓN VOLVER AL INICIO
+     ========================================================= */
+  #btnVolver {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 20;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 15px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    text-decoration: none;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    transition: border-color .15s, background .15s, transform .08s;
+  }
+  #btnVolver:hover { border-color: var(--accent); color: #ffffff; }
+  #btnVolver:active { transform: scale(0.97); }
+
+  /* =========================================================
+     PANEL DE CONTROL FLOTANTE
+     ========================================================= */
+  #panel {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    width: 356px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    padding: 16px 16px 12px;
+    background: var(--panel-bg);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow:
+      0 14px 44px rgba(0, 0, 0, 0.65),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    font-size: 12px;
+    z-index: 10;
+  }
+
+  #panel::-webkit-scrollbar { width: 8px; }
+  #panel::-webkit-scrollbar-track { background: transparent; }
+  #panel::-webkit-scrollbar-thumb {
+    background: rgba(0, 200, 255, 0.22);
+    border-radius: 8px;
+  }
+
+  #panel header h1 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+  }
+  #panel header h1 span { color: var(--accent); }
+  #panel header .formula {
+    margin: 4px 0 0;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 12px;
+    color: var(--accent);
+    opacity: 0.9;
+    letter-spacing: 0.5px;
+  }
+
+  #panel section { margin-top: 15px; }
+
+  #panel h2 {
+    margin: 0 0 7px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-dim);
+  }
+  #panel h2 em {
+    font-style: normal;
+    text-transform: none;
+    letter-spacing: 0;
+    font-size: 9px;
+    color: #55728c;
+  }
+  #panel h2 span { color: var(--accent); }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+
+  .field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+
+  .tag {
+    font-size: 8.5px;
+    line-height: 1.25;
+    letter-spacing: 0.3px;
+    color: var(--text-dim);
+    font-family: ui-monospace, monospace;
+    word-break: break-word;
+  }
+  .tag.ax { color: #ff6b81; }
+  .tag.ay { color: #4ade80; }
+  .tag.az { color: #60a5fa; }
+  .tag.bm { color: #a78bfa; }
+  .tag.ce { color: #ffb257; }
+
+  input[type="number"] {
+    width: 100%;
+    padding: 6px 8px;
+    background: rgba(6, 12, 22, 0.9);
+    border: 1px solid rgba(70, 150, 220, 0.22);
+    border-radius: 7px;
+    color: #e8f4ff;
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 12px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input[type="number"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.15);
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; }
+
+  input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  button {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 9px 8px;
+    color: var(--text);
+    background: rgba(30, 45, 70, 0.65);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    transition: background .15s, border-color .15s, transform .08s;
+  }
+  button:hover { background: rgba(45, 75, 110, 0.85); border-color: var(--accent); }
+  button:active { transform: scale(0.97); }
+
+  button.primary {
+    background: linear-gradient(135deg, #00d5ff, #0077ff);
+    border: none;
+    color: #03121c;
+    font-weight: 800;
+  }
+  button.primary:hover { filter: brightness(1.12); }
+  button.primary.running {
+    background: linear-gradient(135deg, #ff8a00, #ff2d55);
+    color: #ffffff;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 18px;
+  }
+
+  .presets .grid3 button { font-size: 11px; padding: 8px 4px; }
+
+  #panel footer {
+    margin-top: 16px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(70, 150, 220, 0.15);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .legend {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--text-dim);
+    font-family: ui-monospace, monospace;
+  }
+  .legend i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.28);
+  }
+
+  /* =========================================================
+     HUD DE TELEMETRÍA
+     ========================================================= */
+  #hud {
+    position: fixed;
+    left: 16px;
+    bottom: 16px;
+    min-width: 208px;
+    padding: 10px 14px;
+    background: rgba(10, 16, 28, 0.72);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    font-family: ui-monospace, "SF Mono", Consolas, monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    z-index: 10;
+  }
+  #hud .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 2px 0;
+  }
+  #hud b { color: #b9e9ff; font-weight: 500; }
+  #hud b.energia { color: var(--ok); }
+
+  @media (max-width: 700px) {
+    #panel {
+      width: calc(100vw - 24px);
+      left: 12px;
+      top: 12px;
+      max-height: 56vh;
+    }
+    #btnVolver {
+      top: auto;
+      bottom: 12px;
+      right: 12px;
+      padding: 8px 12px;
+      font-size: 11px;
+    }
+    #hud {
+      left: 12px;
+      bottom: 12px;
+      min-width: 0;
+      font-size: 10px;
+      padding: 8px 10px;
+    }
+  }
+</style>
+</head>
+
+<body>
+  <div id="scene-container"></div>
+
+  <a id="btnVolver" href="index.html">← Volver al inicio</a>
+
+  <!-- ================= PANEL DE CONTROL ================= -->
+  <aside id="panel">
+    <header>
+      <h1>Fuerza de Lorentz <span>3D</span></h1>
+      <p class="formula">F = q · ( E + v × B )</p>
+    </header>
+
+    <section>
+      <h2>Partícula</h2>
+      <div class="grid2">
+        <div class="field">
+          <span class="tag">Carga eléctrica q (C)</span>
+          <input id="cargaElectrica" type="number" step="0.1" value="1" />
+        </div>
+        <div class="field">
+          <span class="tag">Masa m (kg)</span>
+          <input id="masaParticula" type="number" step="0.1" min="0.001" value="1" />
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Velocidad inicial v₀ <em>(se aplica al reiniciar)</em></h2>
+      <div class="grid3">
+        <div class="field">
+          <span class="tag ax">Velocidad X</span>
+          <input id="velocidadX" type="number" step="0.1" value="2" />
+        </div>
+        <div class="field">
+          <span class="tag ay">Velocidad Y</span>
+          <input id="velocidadY" type="number" step="0.1" value="1" />
+        </div>
+        <div class="field">
+          <span class="tag az">Velocidad Z</span>
+          <input id="velocidadZ" type="number" step="0.1" value="0" />
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Campo magnético B (T)</h2>
+      <div class="grid3">
+        <div class="field">
+          <span class="tag bm">Campo Magnético X</span>
+          <input id="campoMagneticoX" type="number" step="0.1" value="0" />
+        </div>
+        <div class="field">
+          <span class="tag bm">Campo Magnético Y</span>
+          <input id="campoMagneticoY" type="number" step="0.1" value="1.5" />
+        </div>
+        <div class="field">
+          <span class="tag bm">Campo Magnético Z</span>
+          <input id="campoMagneticoZ" type="number" step="0.1" value="0" />
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Campo eléctrico E (N/C)</h2>
+      <div class="grid3">
+        <div class="field">
+          <span class="tag ce">Campo Eléctrico X</span>
+          <input id="campoElectricoX" type="number" step="0.1" value="0" />
+        </div>
+        <div class="field">
+          <span class="tag ce">Campo Eléctrico Y</span>
+          <input id="campoElectricoY" type="number" step="0.1" value="0" />
+        </div>
+        <div class="field">
+          <span class="tag ce">Campo Eléctrico Z</span>
+          <input id="campoElectricoZ" type="number" step="0.1" value="0" />
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Escala de tiempo <span id="valorEscalaTiempo">1.0×</span></h2>
+      <input id="escalaTiempo" type="range" min="0.1" max="3" step="0.1" value="1" />
+    </section>
+
+    <div class="actions">
+      <button id="btnIniciarPausar" class="primary">▶ Iniciar</button>
+      <button id="btnReiniciar">⟲ Reiniciar</button>
+    </div>
+
+    <section class="presets">
+      <h2>Escenarios</h2>
+      <div class="grid3">
+        <button data-preset="helice">Hélice</button>
+        <button data-preset="cicloide">Cicloide</button>
+        <button data-preset="rectilineo">Recto</button>
+      </div>
+    </section>
+
+    <footer>
+      <div class="legend"><i style="background:#00ff9d"></i> v</div>
+      <div class="legend"><i style="background:#ffe600"></i> F<sub>B</sub></div>
+      <div class="legend"><i style="background:#8b5cf6"></i> B</div>
+      <div class="legend"><i style="background:#ff9f1c"></i> E</div>
+    </footer>
+  </aside>
+
+  <!-- ================= HUD DE TELEMETRÍA ================= -->
+  <div id="hud">
+    <div class="row"><span>tiempo t</span><b id="hud-tiempo">0.00 s</b></div>
+    <div class="row"><span>rapidez |v|</span><b id="hud-rapidez">0.00</b></div>
+    <div class="row"><span>fuerza |F<sub>B</sub>|</span><b id="hud-fuerza">0.00</b></div>
+    <div class="row"><span>energía K</span><b id="hud-energia" class="energia">0.000 J</b></div>
+    <div class="row"><span>posición r</span><b id="hud-posicion">(0.0, 0.0, 0.0)</b></div>
+  </div>
+
+  <!-- ================= IMPORT MAP (CDN) ================= -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <!-- ================= LÓGICA PRINCIPAL ================= -->
+  <script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+  /* =========================================================================
+     1) PARÁMETROS FÍSICOS, ESTADO Y CONSTANTES DE SIMULACIÓN
+     ========================================================================= */
+
+  const parametrosFisicos = {
+    cargaElectrica: 1,
+    masaParticula: 1,
+    velocidadInicial: new THREE.Vector3(2, 1, 0),
+    campoMagnetico: new THREE.Vector3(0, 1.5, 0),
+    campoElectrico: new THREE.Vector3(0, 0, 0),
+    escalaTiempo: 1
+  };
+
+  const estadoSimulacion = {
+    enMarcha: false,
+    tiempo: 0,
+    posicion: new THREE.Vector3(0, 0, 0),
+    velocidad: new THREE.Vector3(2, 1, 0),
+    fuerzaMagnetica: new THREE.Vector3(0, 0, 0)
+  };
+
+  const PASO_TIEMPO = 0.001;
+  const MAX_SUBPASOS_POR_FRAME = 400;
+  const MAX_PUNTOS_RASTRO = 12000;
+  const DISTANCIA_MINIMA_RASTRO = 0.02;
+  const PUNTOS_GRADIENTE_RASTRO = 3000;
+  const ESCALA_VECTOR_VELOCIDAD = 0.5;
+  const ESCALA_VECTOR_FUERZA = 0.5;
+  const FACTOR_SEGUIMIENTO_CAMARA = 0.06;
+
+  const COLOR_CARGA_POSITIVA = 0xff2d55;
+  const COLOR_CARGA_NEGATIVA = 0x2f7bff;
+  const COLOR_CARGA_NEUTRA = 0x9aa7b8;
+  const COLOR_CAMPO_MAGNETICO = 0x8b5cf6;
+  const COLOR_CAMPO_ELECTRICO = 0xff9f1c;
+
+  /* =========================================================================
+     2) ESCENA, CÁMARA, RENDERIZADOR Y CONTROLES DE ÓRBITA
+     ========================================================================= */
+
+  const contenedorEscena = document.getElementById('scene-container');
+
+  const escena = new THREE.Scene();
+  escena.background = new THREE.Color(0x05070d);
+  escena.fog = new THREE.FogExp2(0x05070d, 0.008);
+
+  const camara = new THREE.PerspectiveCamera(
+    55,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    2000
+  );
+  camara.position.set(9, 7, 13);
+
+  const renderizador = new THREE.WebGLRenderer({
+    antialias: true,
+    powerPreference: 'high-performance'
+  });
+  renderizador.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderizador.setSize(window.innerWidth, window.innerHeight);
+  contenedorEscena.appendChild(renderizador.domElement);
+
+  const controlesOrbita = new OrbitControls(camara, renderizador.domElement);
+  controlesOrbita.enableDamping = true;
+  controlesOrbita.dampingFactor = 0.08;
+  controlesOrbita.minDistance = 2;
+  controlesOrbita.maxDistance = 160;
+  controlesOrbita.target.set(0, 0, 0);
+
+  escena.add(new THREE.HemisphereLight(0x8fc4ff, 0x0a0e18, 1.1));
+
+  const luzDireccional = new THREE.DirectionalLight(0xffffff, 2.0);
+  luzDireccional.position.set(8, 14, 10);
+  escena.add(luzDireccional);
+
+  const luzRelleno = new THREE.DirectionalLight(0x3a7bd5, 0.8);
+  luzRelleno.position.set(-10, -6, -8);
+  escena.add(luzRelleno);
+
+  const cuadriculaBase = new THREE.GridHelper(40, 40, 0x2e6a9e, 0x142a42);
+  cuadriculaBase.material.transparent = true;
+  cuadriculaBase.material.opacity = 0.55;
+  escena.add(cuadriculaBase);
+
+  const ejesCoordenados = new THREE.AxesHelper(6);
+  ejesCoordenados.material.depthTest = false;
+  ejesCoordenados.renderOrder = 2;
+  escena.add(ejesCoordenados);
+
+  /* =========================================================================
+     3) PARTÍCULA, HALO Y RASTRO CON DEGRADADO POR VÉRTICE
+     ========================================================================= */
+
+  const geometriaParticula = new THREE.SphereGeometry(0.2, 32, 32);
+  const materialParticula = new THREE.MeshStandardMaterial({
+    color: COLOR_CARGA_POSITIVA,
+    emissive: COLOR_CARGA_POSITIVA,
+    emissiveIntensity: 1.7,
+    roughness: 0.28,
+    metalness: 0.15
+  });
+  const mallaParticula = new THREE.Mesh(geometriaParticula, materialParticula);
+  escena.add(mallaParticula);
+
+  function crearTexturaHalo() {
+    const tamano = 128;
+    const lienzo = document.createElement('canvas');
+    lienzo.width = lienzo.height = tamano;
+    const contexto = lienzo.getContext('2d');
+    const degradado = contexto.createRadialGradient(
+      tamano / 2, tamano / 2, 0,
+      tamano / 2, tamano / 2, tamano / 2
+    );
+    degradado.addColorStop(0.0, 'rgba(255,255,255,1)');
+    degradado.addColorStop(0.22, 'rgba(255,255,255,0.55)');
+    degradado.addColorStop(1.0, 'rgba(255,255,255,0)');
+    contexto.fillStyle = degradado;
+    contexto.fillRect(0, 0, tamano, tamano);
+    return new THREE.CanvasTexture(lienzo);
+  }
+
+  const materialHalo = new THREE.SpriteMaterial({
+    map: crearTexturaHalo(),
+    color: COLOR_CARGA_POSITIVA,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    opacity: 0.85
+  });
+  const haloParticula = new THREE.Sprite(materialHalo);
+  haloParticula.scale.setScalar(1.8);
+  escena.add(haloParticula);
+
+  const geometriaRastro = new THREE.BufferGeometry();
+  const posicionesRastro = new Float32Array(MAX_PUNTOS_RASTRO * 3);
+  const coloresRastro = new Float32Array(MAX_PUNTOS_RASTRO * 3);
+  geometriaRastro.setAttribute('position', new THREE.BufferAttribute(posicionesRastro, 3));
+  geometriaRastro.setAttribute('color', new THREE.BufferAttribute(coloresRastro, 3));
+  geometriaRastro.setDrawRange(0, 0);
+
+  const materialRastro = new THREE.LineBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.95
+  });
+  const lineaRastro = new THREE.Line(geometriaRastro, materialRastro);
+  lineaRastro.frustumCulled = false;
+  escena.add(lineaRastro);
+
+  let contadorPuntosRastro = 0;
+  const colorTemporalRastro = new THREE.Color();
+
+  function agregarPuntoRastro() {
+    if (contadorPuntosRastro > 0) {
+      const indiceAnterior = (contadorPuntosRastro - 1) * 3;
+      const diferenciaX = estadoSimulacion.posicion.x - posicionesRastro[indiceAnterior];
+      const diferenciaY = estadoSimulacion.posicion.y - posicionesRastro[indiceAnterior + 1];
+      const diferenciaZ = estadoSimulacion.posicion.z - posicionesRastro[indiceAnterior + 2];
+      const distanciaCuadratica =
+        diferenciaX * diferenciaX + diferenciaY * diferenciaY + diferenciaZ * diferenciaZ;
+
+      if (distanciaCuadratica < DISTANCIA_MINIMA_RASTRO * DISTANCIA_MINIMA_RASTRO) return;
+    }
+
+    if (contadorPuntosRastro >= MAX_PUNTOS_RASTRO) diezmarRastro();
+
+    const indice = contadorPuntosRastro * 3;
+    posicionesRastro[indice] = estadoSimulacion.posicion.x;
+    posicionesRastro[indice + 1] = estadoSimulacion.posicion.y;
+    posicionesRastro[indice + 2] = estadoSimulacion.posicion.z;
+
+    const progreso = Math.min(1, contadorPuntosRastro / PUNTOS_GRADIENTE_RASTRO);
+    colorTemporalRastro.setHSL(0.5 + 0.38 * progreso, 1.0, 0.55);
+    coloresRastro[indice] = colorTemporalRastro.r;
+    coloresRastro[indice + 1] = colorTemporalRastro.g;
+    coloresRastro[indice + 2] = colorTemporalRastro.b;
+
+    contadorPuntosRastro++;
+
+    geometriaRastro.setDrawRange(0, contadorPuntosRastro);
+    geometriaRastro.attributes.position.needsUpdate = true;
+    geometriaRastro.attributes.color.needsUpdate = true;
+  }
+
+  function diezmarRastro() {
+    let destino = 0;
+    for (let origen = 0; origen < contadorPuntosRastro; origen += 2) {
+      posicionesRastro[destino * 3] = posicionesRastro[origen * 3];
+      posicionesRastro[destino * 3 + 1] = posicionesRastro[origen * 3 + 1];
+      posicionesRastro[destino * 3 + 2] = posicionesRastro[origen * 3 + 2];
+
+      coloresRastro[destino * 3] = coloresRastro[origen * 3];
+      coloresRastro[destino * 3 + 1] = coloresRastro[origen * 3 + 1];
+      coloresRastro[destino * 3 + 2] = coloresRastro[origen * 3 + 2];
+
+      destino++;
+    }
+    contadorPuntosRastro = destino;
+  }
+
+  function limpiarRastro() {
+    contadorPuntosRastro = 0;
+    geometriaRastro.setDrawRange(0, 0);
+    geometriaRastro.attributes.position.needsUpdate = true;
+    geometriaRastro.attributes.color.needsUpdate = true;
+  }
+
+  /* =========================================================================
+     4) VECTORES DINÁMICOS ANCLADOS A LA PARTÍCULA
+     ========================================================================= */
+
+  const flechaVelocidad = new THREE.ArrowHelper(
+    new THREE.Vector3(0, 1, 0), new THREE.Vector3(), 1, 0x00ff9d, 0.3, 0.16
+  );
+  flechaVelocidad.line.material.linewidth = 2;
+  escena.add(flechaVelocidad);
+
+  const flechaFuerzaMagnetica = new THREE.ArrowHelper(
+    new THREE.Vector3(0, 1, 0), new THREE.Vector3(), 1, 0xffe600, 0.3, 0.16
+  );
+  flechaFuerzaMagnetica.line.material.linewidth = 2;
+  escena.add(flechaFuerzaMagnetica);
+
+  /* =========================================================================
+     5) VISUALIZACIÓN DE LOS CAMPOS B Y E EN EL ESPACIO 3D
+     ========================================================================= */
+
+  const grupoFlechasCampo = new THREE.Group();
+  escena.add(grupoFlechasCampo);
+
+  function liberarGrupo(objetoGrupo) {
+    for (let indice = objetoGrupo.children.length - 1; indice >= 0; indice--) {
+      const hijo = objetoGrupo.children[indice];
+      hijo.traverse((nodo) => {
+        if (nodo.geometry) nodo.geometry.dispose();
+        if (nodo.material) {
+          if (Array.isArray(nodo.material)) nodo.material.forEach((m) => m.dispose());
+          else nodo.material.dispose();
+        }
+      });
+      objetoGrupo.remove(hijo);
+    }
+  }
+
+  function crearFlechasDeCampo(vectorCampo, color, grupoDestino) {
+    const magnitudCampo = vectorCampo.length();
+    if (magnitudCampo < 1e-6) return;
+
+    const direccionCampo = vectorCampo.clone().normalize();
+    const longitudFlecha = THREE.MathUtils.clamp(magnitudCampo * 0.55, 0.9, 2.6);
+
+    const coordenadasHorizontales = [-8, 0, 8];
+    const alturas = [-4, 0, 4];
+
+    for (const coordenadaX of coordenadasHorizontales) {
+      for (const coordenadaY of alturas) {
+        for (const coordenadaZ of coordenadasHorizontales) {
+          const flechaCampo = new THREE.ArrowHelper(
+            direccionCampo,
+            new THREE.Vector3(coordenadaX, coordenadaY, coordenadaZ),
+            longitudFlecha,
+            color,
+            longitudFlecha * 0.28,
+            longitudFlecha * 0.14
+          );
+          flechaCampo.line.material.transparent = true;
+          flechaCampo.line.material.opacity = 0.5;
+          flechaCampo.cone.material.transparent = true;
+          flechaCampo.cone.material.opacity = 0.6;
+          grupoDestino.add(flechaCampo);
+        }
+      }
+    }
+  }
+
+  function reconstruirFlechasCampo() {
+    liberarGrupo(grupoFlechasCampo);
+    crearFlechasDeCampo(parametrosFisicos.campoMagnetico, COLOR_CAMPO_MAGNETICO, grupoFlechasCampo);
+    crearFlechasDeCampo(parametrosFisicos.campoElectrico, COLOR_CAMPO_ELECTRICO, grupoFlechasCampo);
+  }
+
+  /* =========================================================================
+     6) INTEGRADOR DE BORIS (BORIS PUSHER)
+     ========================================================================= */
+
+  const vectorTemporalT = new THREE.Vector3();
+  const vectorVelocidadMenos = new THREE.Vector3();
+  const vectorVelocidadPrima = new THREE.Vector3();
+  const vectorVelocidadMas = new THREE.Vector3();
+  const vectorAceleracionElectrica = new THREE.Vector3();
+
+  function avanzarPasoBoris(incrementoTiempo) {
+    const relacionCargaMasa =
+      parametrosFisicos.cargaElectrica / parametrosFisicos.masaParticula;
+
+    // (1) Primera media aceleración debida al campo eléctrico
+    vectorAceleracionElectrica
+      .copy(parametrosFisicos.campoElectrico)
+      .multiplyScalar(relacionCargaMasa * incrementoTiempo * 0.5);
+
+    vectorVelocidadMenos
+      .copy(estadoSimulacion.velocidad)
+      .add(vectorAceleracionElectrica);
+
+    // (2) Rotación pura por el campo magnético
+    vectorTemporalT
+      .copy(parametrosFisicos.campoMagnetico)
+      .multiplyScalar(relacionCargaMasa * incrementoTiempo * 0.5);
+
+    const moduloTCuadrado = vectorTemporalT.lengthSq();
+
+    // v' = v⁻ + (v⁻ × t)
+    vectorVelocidadPrima
+      .copy(vectorVelocidadMenos)
+      .cross(vectorTemporalT)
+      .add(vectorVelocidadMenos);
+
+    // s = 2t / (1 + |t|²)
+    vectorTemporalT.multiplyScalar(2 / (1 + moduloTCuadrado));
+
+    // v⁺ = v⁻ + (v' × s)
+    vectorVelocidadMas
+      .copy(vectorVelocidadPrima)
+      .cross(vectorTemporalT)
+      .add(vectorVelocidadMenos);
+
+    // (3) Segunda media aceleración eléctrica
+    vectorVelocidadMas.add(vectorAceleracionElectrica);
+
+    // (4) Actualización de velocidad y posición (x += v⁺ · dt)
+    estadoSimulacion.velocidad.copy(vectorVelocidadMas);
+    estadoSimulacion.posicion.addScaledVector(vectorVelocidadMas, incrementoTiempo);
+    estadoSimulacion.tiempo += incrementoTiempo;
+  }
+
+  /* =========================================================================
+     7) ACTUALIZACIÓN VISUAL, SEGUIMIENTO DE CÁMARA Y HUD
+     ========================================================================= */
+
+  const direccionTemporal = new THREE.Vector3();
+  const desplazamientoCamara = new THREE.Vector3();
+  const objetivoCamara = new THREE.Vector3();
+
+  function actualizarVisuales() {
+    mallaParticula.position.copy(estadoSimulacion.posicion);
+    haloParticula.position.copy(estadoSimulacion.posicion);
+
+    // Fuerza magnética F_B = q (v × B)
+    estadoSimulacion.fuerzaMagnetica
+      .copy(estadoSimulacion.velocidad)
+      .cross(parametrosFisicos.campoMagnetico)
+      .multiplyScalar(parametrosFisicos.cargaElectrica);
+
+    const rapidezActual = estadoSimulacion.velocidad.length();
+    if (rapidezActual > 1e-6) {
+      flechaVelocidad.visible = true;
+      flechaVelocidad.position.copy(estadoSimulacion.posicion);
+      direccionTemporal.copy(estadoSimulacion.velocidad).normalize();
+      const longitudVelocidad = THREE.MathUtils.clamp(
+        rapidezActual * ESCALA_VECTOR_VELOCIDAD, 0.45, 9
+      );
+      flechaVelocidad.setDirection(direccionTemporal);
+      flechaVelocidad.setLength(
+        longitudVelocidad, longitudVelocidad * 0.24, longitudVelocidad * 0.13
+      );
+    } else {
+      flechaVelocidad.visible = false;
+    }
+
+    const moduloFuerzaMagnetica = estadoSimulacion.fuerzaMagnetica.length();
+    if (moduloFuerzaMagnetica > 1e-6) {
+      flechaFuerzaMagnetica.visible = true;
+      flechaFuerzaMagnetica.position.copy(estadoSimulacion.posicion);
+      direccionTemporal.copy(estadoSimulacion.fuerzaMagnetica).normalize();
+      const longitudFuerza = THREE.MathUtils.clamp(
+        moduloFuerzaMagnetica * ESCALA_VECTOR_FUERZA, 0.45, 9
+      );
+      flechaFuerzaMagnetica.setDirection(direccionTemporal);
+      flechaFuerzaMagnetica.setLength(
+        longitudFuerza, longitudFuerza * 0.24, longitudFuerza * 0.13
+      );
+    } else {
+      flechaFuerzaMagnetica.visible = false;
+    }
+
+    if (estadoSimulacion.enMarcha) agregarPuntoRastro();
+  }
+
+  function seguirParticulaConCamara() {
+    objetivoCamara.copy(estadoSimulacion.posicion);
+    desplazamientoCamara
+      .copy(objetivoCamara)
+      .sub(controlesOrbita.target)
+      .multiplyScalar(FACTOR_SEGUIMIENTO_CAMARA);
+
+    controlesOrbita.target.add(desplazamientoCamara);
+    camara.position.add(desplazamientoCamara);
+  }
+
+  const elementoHudTiempo = document.getElementById('hud-tiempo');
+  const elementoHudRapidez = document.getElementById('hud-rapidez');
+  const elementoHudFuerza = document.getElementById('hud-fuerza');
+  const elementoHudEnergia = document.getElementById('hud-energia');
+  const elementoHudPosicion = document.getElementById('hud-posicion');
+
+  function actualizarHUD() {
+    const rapidezActual = estadoSimulacion.velocidad.length();
+    const energiaCinetica =
+      0.5 * parametrosFisicos.masaParticula * rapidezActual * rapidezActual;
+
+    elementoHudTiempo.textContent = estadoSimulacion.tiempo.toFixed(2) + ' s';
+    elementoHudRapidez.textContent = rapidezActual.toFixed(2);
+    elementoHudFuerza.textContent = estadoSimulacion.fuerzaMagnetica.length().toFixed(2);
+    elementoHudEnergia.textContent = energiaCinetica.toFixed(3) + ' J';
+    elementoHudPosicion.textContent =
+      `(${estadoSimulacion.posicion.x.toFixed(1)}, ` +
+      `${estadoSimulacion.posicion.y.toFixed(1)}, ` +
+      `${estadoSimulacion.posicion.z.toFixed(1)})`;
+  }
+
+  /* =========================================================================
+     8) INTERFAZ DE USUARIO: LECTURA DE ENTRADAS Y CONTROLES
+     ========================================================================= */
+
+  const elementoEntradaCarga = document.getElementById('cargaElectrica');
+  const elementoEntradaMasa = document.getElementById('masaParticula');
+  const elementoEntradaVelocidadX = document.getElementById('velocidadX');
+  const elementoEntradaVelocidadY = document.getElementById('velocidadY');
+  const elementoEntradaVelocidadZ = document.getElementById('velocidadZ');
+  const elementoEntradaCampoMagneticoX = document.getElementById('campoMagneticoX');
+  const elementoEntradaCampoMagneticoY = document.getElementById('campoMagneticoY');
+  const elementoEntradaCampoMagneticoZ = document.getElementById('campoMagneticoZ');
+  const elementoEntradaCampoElectricoX = document.getElementById('campoElectricoX');
+  const elementoEntradaCampoElectricoY = document.getElementById('campoElectricoY');
+  const elementoEntradaCampoElectricoZ = document.getElementById('campoElectricoZ');
+  const elementoEntradaEscalaTiempo = document.getElementById('escalaTiempo');
+  const elementoValorEscalaTiempo = document.getElementById('valorEscalaTiempo');
+
+  const botonIniciarPausar = document.getElementById('btnIniciarPausar');
+  const botonReiniciar = document.getElementById('btnReiniciar');
+
+  function valorNumerico(elementoEntrada, valorPorDefecto) {
+    const valorLeido = parseFloat(elementoEntrada.value);
+    return Number.isFinite(valorLeido) ? valorLeido : valorPorDefecto;
+  }
+
+  function leerEntradas() {
+    parametrosFisicos.cargaElectrica = valorNumerico(
+      elementoEntradaCarga, parametrosFisicos.cargaElectrica
+    );
+
+    const masaLeida = valorNumerico(elementoEntradaMasa, parametrosFisicos.masaParticula);
+    parametrosFisicos.masaParticula = Math.max(0.001, masaLeida);
+
+    parametrosFisicos.velocidadInicial.set(
+      valorNumerico(elementoEntradaVelocidadX, parametrosFisicos.velocidadInicial.x),
+      valorNumerico(elementoEntradaVelocidadY, parametrosFisicos.velocidadInicial.y),
+      valorNumerico(elementoEntradaVelocidadZ, parametrosFisicos.velocidadInicial.z)
+    );
+
+    parametrosFisicos.campoMagnetico.set(
+      valorNumerico(elementoEntradaCampoMagneticoX, parametrosFisicos.campoMagnetico.x),
+      valorNumerico(elementoEntradaCampoMagneticoY, parametrosFisicos.campoMagnetico.y),
+      valorNumerico(elementoEntradaCampoMagneticoZ, parametrosFisicos.campoMagnetico.z)
+    );
+
+    parametrosFisicos.campoElectrico.set(
+      valorNumerico(elementoEntradaCampoElectricoX, parametrosFisicos.campoElectrico.x),
+      valorNumerico(elementoEntradaCampoElectricoY, parametrosFisicos.campoElectrico.y),
+      valorNumerico(elementoEntradaCampoElectricoZ, parametrosFisicos.campoElectrico.z)
+    );
+
+    parametrosFisicos.escalaTiempo = Math.max(
+      0.05,
+      valorNumerico(elementoEntradaEscalaTiempo, parametrosFisicos.escalaTiempo)
+    );
+    elementoValorEscalaTiempo.textContent =
+      parametrosFisicos.escalaTiempo.toFixed(1) + '×';
+  }
+
+  function actualizarColorParticula() {
+    let colorSeleccionado;
+    if (parametrosFisicos.cargaElectrica > 0) {
+      colorSeleccionado = COLOR_CARGA_POSITIVA;
+    } else if (parametrosFisicos.cargaElectrica < 0) {
+      colorSeleccionado = COLOR_CARGA_NEGATIVA;
+    } else {
+      colorSeleccionado = COLOR_CARGA_NEUTRA;
+    }
+
+    materialParticula.color.setHex(colorSeleccionado);
+    materialParticula.emissive.setHex(colorSeleccionado);
+    materialHalo.color.setHex(colorSeleccionado);
+  }
+
+  /* =========================================================================
+     9) CONTROL DE ESTADO: INICIAR / PAUSAR / REINICIAR / ESCENARIOS
+     ========================================================================= */
+
+  function establecerEnMarcha(enMarcha) {
+    estadoSimulacion.enMarcha = enMarcha;
+    botonIniciarPausar.textContent = enMarcha ? '⏸ Pausar' : '▶ Iniciar';
+    botonIniciarPausar.classList.toggle('running', enMarcha);
+  }
+
+  function reiniciarEstadoParticula() {
+    estadoSimulacion.tiempo = 0;
+    estadoSimulacion.posicion.set(0, 0, 0);
+    estadoSimulacion.velocidad.copy(parametrosFisicos.velocidadInicial);
+    estadoSimulacion.fuerzaMagnetica.set(0, 0, 0);
+
+    limpiarRastro();
+    agregarPuntoRastro();
+    actualizarVisuales();
+    actualizarHUD();
+  }
+
+  botonIniciarPausar.addEventListener('click', () => {
+    if (!estadoSimulacion.enMarcha) leerEntradas();
+    establecerEnMarcha(!estadoSimulacion.enMarcha);
+  });
+
+  botonReiniciar.addEventListener('click', () => {
+    leerEntradas();
+    actualizarColorParticula();
+    reiniciarEstadoParticula();
+    establecerEnMarcha(false);
+  });
+
+  const entradasFisicas = [
+    elementoEntradaCarga,
+    elementoEntradaMasa,
+    elementoEntradaVelocidadX,
+    elementoEntradaVelocidadY,
+    elementoEntradaVelocidadZ,
+    elementoEntradaCampoMagneticoX,
+    elementoEntradaCampoMagneticoY,
+    elementoEntradaCampoMagneticoZ,
+    elementoEntradaCampoElectricoX,
+    elementoEntradaCampoElectricoY,
+    elementoEntradaCampoElectricoZ
+  ];
+
+  entradasFisicas.forEach((elementoEntrada) => {
+    elementoEntrada.addEventListener('input', () => {
+      leerEntradas();
+      actualizarColorParticula();
+    });
+  });
+
+  [
+    elementoEntradaCampoMagneticoX,
+    elementoEntradaCampoMagneticoY,
+    elementoEntradaCampoMagneticoZ,
+    elementoEntradaCampoElectricoX,
+    elementoEntradaCampoElectricoY,
+    elementoEntradaCampoElectricoZ
+  ].forEach((elementoEntrada) => {
+    elementoEntrada.addEventListener('input', reconstruirFlechasCampo);
+  });
+
+  elementoEntradaMasa.addEventListener('change', () => {
+    leerEntradas();
+    elementoEntradaMasa.value = String(parametrosFisicos.masaParticula);
+    actualizarColorParticula();
+  });
+
+  elementoEntradaEscalaTiempo.addEventListener('input', leerEntradas);
+
+  const escenariosPredefinidos = {
+    helice: {
+      carga: 1, masa: 1,
+      velocidad: [2, 1, 0],
+      campoMagnetico: [0, 1.5, 0],
+      campoElectrico: [0, 0, 0]
+    },
+    cicloide: {
+      carga: 1, masa: 1,
+      velocidad: [0, 0, 0],
+      campoMagnetico: [0, 1, 0],
+      campoElectrico: [0, 0, 1]
+    },
+    rectilineo: {
+      carga: 1, masa: 1,
+      velocidad: [0, 2, 0],
+      campoMagnetico: [0, 1, 0],
+      campoElectrico: [0, 0, 0]
+    }
+  };
+
+  function aplicarEscenario(nombreEscenario) {
+    const escenario = escenariosPredefinidos[nombreEscenario];
+    if (!escenario) return;
+
+    elementoEntradaCarga.value = escenario.carga;
+    elementoEntradaMasa.value = escenario.masa;
+
+    elementoEntradaVelocidadX.value = escenario.velocidad[0];
+    elementoEntradaVelocidadY.value = escenario.velocidad[1];
+    elementoEntradaVelocidadZ.value = escenario.velocidad[2];
+
+    elementoEntradaCampoMagneticoX.value = escenario.campoMagnetico[0];
+    elementoEntradaCampoMagneticoY.value = escenario.campoMagnetico[1];
+    elementoEntradaCampoMagneticoZ.value = escenario.campoMagnetico[2];
+
+    elementoEntradaCampoElectricoX.value = escenario.campoElectrico[0];
+    elementoEntradaCampoElectricoY.value = escenario.campoElectrico[1];
+    elementoEntradaCampoElectricoZ.value = escenario.campoElectrico[2];
+
+    leerEntradas();
+    actualizarColorParticula();
+    reconstruirFlechasCampo();
+    reiniciarEstadoParticula();
+    establecerEnMarcha(true);
+  }
+
+  document.querySelectorAll('[data-preset]').forEach((botonEscenario) => {
+    botonEscenario.addEventListener('click', () => {
+      aplicarEscenario(botonEscenario.dataset.preset);
+    });
+  });
+
+  /* =========================================================================
+     10) BUCLE DE ANIMACIÓN
+     ========================================================================= */
+
+  const relojSimulacion = new THREE.Clock();
+  let acumuladorTiempo = 0;
+
+  function bucleAnimacion() {
+    requestAnimationFrame(bucleAnimacion);
+
+    const deltaTiempoFrame = Math.min(relojSimulacion.getDelta(), 0.05);
+
+    if (estadoSimulacion.enMarcha) {
+      acumuladorTiempo += deltaTiempoFrame * parametrosFisicos.escalaTiempo;
+
+      let subpasosEjecutados = 0;
+      while (
+        acumuladorTiempo >= PASO_TIEMPO &&
+        subpasosEjecutados < MAX_SUBPASOS_POR_FRAME
+      ) {
+        avanzarPasoBoris(PASO_TIEMPO);
+        acumuladorTiempo -= PASO_TIEMPO;
+        subpasosEjecutados++;
+      }
+
+      if (subpasosEjecutados >= MAX_SUBPASOS_POR_FRAME) acumuladorTiempo = 0;
+    } else {
+      acumuladorTiempo = 0;
+    }
+
+    actualizarVisuales();
+    actualizarHUD();
+    seguirParticulaConCamara();
+    controlesOrbita.update();
+    renderizador.render(escena, camara);
+  }
+
+  /* =========================================================================
+     11) RESPONSIVE
+     ========================================================================= */
+
+  window.addEventListener('resize', () => {
+    camara.aspect = window.innerWidth / window.innerHeight;
+    camara.updateProjectionMatrix();
+    renderizador.setSize(window.innerWidth, window.innerHeight);
+    renderizador.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  });
+
+  /* =========================================================================
+     12) ARRANQUE
+     ========================================================================= */
+
+  leerEntradas();
+  actualizarColorParticula();
+  reconstruirFlechasCampo();
+  reiniciarEstadoParticula();
+  establecerEnMarcha(false);
+  bucleAnimacion();
+  </script>
+</body>
+</html>
