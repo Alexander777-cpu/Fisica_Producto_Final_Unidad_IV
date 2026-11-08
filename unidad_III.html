@@ -250,15 +250,15 @@
   <!-- ============ MÓDULO 1 ============ -->
   <section class="pane active" id="pane-micro">
     <div class="ctrl">
-      <label>Campo eléctrico <i>E</i><span class="val" id="v-E">0.100 V/m</span></label>
+      <label>Campo eléctrico (E)<span class="val" id="v-E">0.100 V/m</span></label>
       <input type="range" id="s-E" min="0" max="100" value="10" step="0.5">
     </div>
     <div class="ctrl">
-      <label>Diámetro <i>d</i><span class="val" id="v-d">1.00 mm</span></label>
+      <label>Diámetro (d)<span class="val" id="v-d">1.00 mm</span></label>
       <input type="range" id="s-d" min="0.5" max="5" value="1" step="0.05">
     </div>
     <div class="ctrl">
-      <label>Temperatura <i>T</i><span class="val" id="v-T">293 K</span></label>
+      <label>Temperatura (T)<span class="val" id="v-T">293 K</span></label>
       <input type="range" id="s-T" min="100" max="800" value="293" step="1">
     </div>
     <div class="ctrl">
@@ -280,15 +280,15 @@
   <!-- ============ MÓDULO 2 ============ -->
   <section class="pane" id="pane-ohm">
     <div class="ctrl">
-      <label>Voltaje de la fuente <i>V</i><span class="val" id="v-V">12.0 V</span></label>
+      <label>Voltaje (V)<span class="val" id="v-V">12.0 V</span></label>
       <input type="range" id="s-V" min="0" max="50" value="12" step="0.5">
     </div>
     <div class="ctrl">
-      <label>Resistencia base <i>R₀</i><span class="val" id="v-R0">470 Ω</span></label>
+      <label>Resistencia base (R₀)<span class="val" id="v-R0">470 Ω</span></label>
       <input type="range" id="s-R0" min="1" max="1000" value="470" step="1">
     </div>
     <div class="ctrl">
-      <label>Temperatura <i>T</i><span class="val" id="v-T2">25 °C</span></label>
+      <label>Temperatura (T)<span class="val" id="v-T2">25 °C</span></label>
       <input type="range" id="s-T2" min="0" max="300" value="25" step="1">
     </div>
     <div class="ctrl">
@@ -318,23 +318,23 @@
       </div>
     </div>
     <div class="ctrl">
-      <label>Fem de la fuente <i>ℰ</i><span class="val" id="v-emf">12.0 V</span></label>
+      <label>Fuerza Electromotriz (fem)<span class="val" id="v-emf">12.0 V</span></label>
       <input type="range" id="s-emf" min="1" max="24" value="12" step="0.5">
     </div>
     <div class="ctrl">
-      <label>Resistencia interna <i>r</i><span class="val" id="v-rint">0.50 Ω</span></label>
+      <label>Resistencia interna (r)<span class="val" id="v-rint">0.50 Ω</span></label>
       <input type="range" id="s-rint" min="0" max="3" value="0.5" step="0.05">
     </div>
     <div class="ctrl">
-      <label>R₁<span class="val" id="v-R1">10 Ω</span></label>
+      <label>Resistencia 1 (R₁)<span class="val" id="v-R1">10 Ω</span></label>
       <input type="range" id="s-R1" min="1" max="100" value="10" step="1">
     </div>
     <div class="ctrl">
-      <label>R₂<span class="val" id="v-R2">20 Ω</span></label>
+      <label>Resistencia 2 (R₂)<span class="val" id="v-R2">20 Ω</span></label>
       <input type="range" id="s-R2" min="1" max="100" value="20" step="1">
     </div>
     <div class="ctrl">
-      <label>R₃<span class="val" id="v-R3">30 Ω</span></label>
+      <label>Resistencia 3 (R₃)<span class="val" id="v-R3">30 Ω</span></label>
       <input type="range" id="s-R3" min="1" max="100" value="30" step="1">
     </div>
     <div class="ctrl">
@@ -378,9 +378,9 @@ const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const lerp = (a, b, t) => a + (b - a) * t;
 
-const QE = 1.602176634e-19;   // C
-const ME = 9.1093837015e-31;  // kg
-const KB = 1.380649e-23;      // J/K
+const QE = 1.602176634e-19;   // Carga elemental
+const ME = 9.1093837015e-31;  // Masa del electrón (kg)
+const KB = 1.380649e-23;      // Constante de Boltzmann (J/K)
 
 const PREF = [
   [1e9, 'G'], [1e6, 'M'], [1e3, 'k'], [1, ''], [1e-3, 'm'],
@@ -502,12 +502,12 @@ const RAND_DIRS = (() => {
    MÓDULO 1 — DINÁMICA MICROSCÓPICA Y VELOCIDAD DE DERIVA
    ================================================================ */
 const M1 = {
-  sE: 10,          // slider 0..100 (mapeo cúbico)
-  E: 0.1,          // V/m
-  d: 1.0,          // mm
-  T: 293,          // K
-  mat: 'cobre',
-  nElec: 620,
+  sliderE: 10,
+  campoElectrico: 0.1,     // (E) V/m
+  diametro: 1.0,           // (d) mm
+  temperatura: 293,        // (T) K
+  material: 'cobre',
+  numeroElectrones: 620,
   ePos: null,
   eVel: null,
   ions: null,
@@ -526,32 +526,45 @@ const M1 = {
 };
 
 const CONDUCTORES = {
-  cobre:    { nombre: 'Cobre',    n: 8.5e28, rho: 1.68e-8, color: 0xd98b5a },
-  plata:    { nombre: 'Plata',    n: 5.8e28, rho: 1.59e-8, color: 0xd8dde6 },
-  aluminio: { nombre: 'Aluminio', n: 6.0e28, rho: 2.65e-8, color: 0xa9b4c2 }
+  cobre:    { nombre: 'Cobre',    densidadPortadores: 8.5e28, resistividad: 1.68e-8, color: 0xd98b5a },
+  plata:    { nombre: 'Plata',    densidadPortadores: 5.8e28, resistividad: 1.59e-8, color: 0xd8dde6 },
+  aluminio: { nombre: 'Aluminio', densidadPortadores: 6.0e28, resistividad: 2.65e-8, color: 0xa9b4c2 }
 };
 
 const WIRE_LEN = 9.0;
 const WIRE_HALF = WIRE_LEN / 2;
 
 function microRadius() {
-  return 0.35 + ((M1.d - 0.5) / (5.0 - 0.5)) * 0.95;
+  return 0.35 + ((M1.diametro - 0.5) / (5.0 - 0.5)) * 0.95;
 }
 
 function microPhysics() {
-  const m = CONDUCTORES[M1.mat];
-  const sigma0 = 1 / m.rho;
+  const material = CONDUCTORES[M1.material];
+  const conductividad0 = 1 / material.resistividad;
+  
   // τ a 293 K derivado del modelo de Drude: σ = n e² τ / mₑ
-  const tauRef = sigma0 * ME / (m.n * QE * QE);
-  const tau = tauRef * (293 / M1.T);
-  const mu = QE * tau / ME;                    // m²/(V·s)
-  const vd = mu * M1.E;                        // m/s
-  const dMeters = M1.d * 1e-3;
-  const A = Math.PI * Math.pow(dMeters / 2, 2); // m²
-  const J = m.n * QE * vd;                     // A/m²
-  const I = J * A;                             // A
-  const vth = Math.sqrt(3 * KB * M1.T / ME);   // m/s (informativo)
-  return { m, tau, mu, vd, A, J, I, vth, sigma: sigma0 * (293 / M1.T) };
+  const tiempoLibreMedioRef = conductividad0 * ME / (material.densidadPortadores * QE * QE);
+  const tiempoLibreMedio = tiempoLibreMedioRef * (293 / M1.temperatura); // (tau) s
+  const movilidad = QE * tiempoLibreMedio / ME;                          // (mu) m²/(V·s)
+  const velocidadDeriva = movilidad * M1.campoElectrico;                 // (vd) m/s
+  
+  const diametroMetros = M1.diametro * 1e-3;
+  const area = Math.PI * Math.pow(diametroMetros / 2, 2);                // (A) m²
+  const densidadCorriente = material.densidadPortadores * QE * velocidadDeriva; // (J) A/m²
+  const corriente = densidadCorriente * area;                            // (I) A
+  const velocidadTermica = Math.sqrt(3 * KB * M1.temperatura / ME);      // (vth) m/s
+  
+  return { 
+    material, 
+    tiempoLibreMedio, 
+    movilidad, 
+    velocidadDeriva, 
+    area, 
+    densidadCorriente, 
+    corriente, 
+    velocidadTermica, 
+    conductividad: conductividad0 * (293 / M1.temperatura) 
+  };
 }
 
 function buildMicro() {
@@ -609,7 +622,7 @@ function buildMicro() {
   G.add(M1.ions);
 
   /* --- Gas de electrones libres --- */
-  const N = M1.nElec;
+  const N = M1.numeroElectrones;
   M1.ePos = new Float32Array(N * 3);
   M1.eVel = new Float32Array(N * 3);
   const R = microRadius();
@@ -673,64 +686,64 @@ function buildMicro() {
 }
 
 function syncMicroGeometry() {
-  const R = microRadius();
-  if (M1.shell) M1.shell.scale.set(1, R, R);
-  if (M1.ringA) { M1.ringA.scale.set(1, R, R); M1.ringB.scale.set(1, R, R); }
-  if (M1.detRing) M1.detRing.scale.set(1, R, R);
-  if (M1.detDisc) M1.detDisc.scale.set(1, R, R);
+  const radio = microRadius(); // (R)
+  if (M1.shell) M1.shell.scale.set(1, radio, radio);
+  if (M1.ringA) { M1.ringA.scale.set(1, radio, radio); M1.ringB.scale.set(1, radio, radio); }
+  if (M1.detRing) M1.detRing.scale.set(1, radio, radio);
+  if (M1.detDisc) M1.detDisc.scale.set(1, radio, radio);
 
   // recolocar electrones dentro del nuevo radio
   if (M1.ePos) {
-    const N = M1.nElec;
+    const N = M1.numeroElectrones;
     for (let i = 0; i < N; i++) {
       const y = M1.ePos[i * 3 + 1], z = M1.ePos[i * 3 + 2];
       const rr = Math.hypot(y, z);
-      const lim = R * 0.92;
-      if (rr > lim && rr > 1e-6) {
-        M1.ePos[i * 3 + 1] = (y / rr) * lim;
-        M1.ePos[i * 3 + 2] = (z / rr) * lim;
+      const limiteRadio = radio * 0.92;
+      if (rr > limiteRadio && rr > 1e-6) {
+        M1.ePos[i * 3 + 1] = (y / rr) * limiteRadio;
+        M1.ePos[i * 3 + 2] = (z / rr) * limiteRadio;
       }
     }
     M1.particles.geometry.attributes.position.needsUpdate = true;
   }
 
   // vectores
-  const st = microPhysics();
-  const showE = M1.E > 1e-6;
-  M1.eArrow.visible = showE;
-  if (showE) {
-    const len = 1.2 + Math.log10(1 + M1.E * 10) * 1.5;
-    M1.eArrow.position.set(-len * 0.5, R + 0.85, 0);
-    M1.eArrow.setLength(len, Math.min(0.55, len * 0.24), Math.min(0.3, len * 0.13));
+  const fisica = microPhysics();
+  const mostrarE = M1.campoElectrico > 1e-6;
+  M1.eArrow.visible = mostrarE;
+  if (mostrarE) {
+    const longitud = 1.2 + Math.log10(1 + M1.campoElectrico * 10) * 1.5;
+    M1.eArrow.position.set(-longitud * 0.5, radio + 0.85, 0);
+    M1.eArrow.setLength(longitud, Math.min(0.55, longitud * 0.24), Math.min(0.3, longitud * 0.13));
   }
-  const showD = st.vd > 1e-9;
-  M1.dArrow.visible = showD;
-  if (showD) {
-    const len = 0.8 + Math.log10(1 + st.vd * 4e4) * 1.2;
-    M1.dArrow.position.set(len * 0.5, -R - 0.85, 0);
-    M1.dArrow.setLength(len, Math.min(0.45, len * 0.24), Math.min(0.26, len * 0.13));
+  const mostrarD = fisica.velocidadDeriva > 1e-9;
+  M1.dArrow.visible = mostrarD;
+  if (mostrarD) {
+    const longitud = 0.8 + Math.log10(1 + fisica.velocidadDeriva * 4e4) * 1.2;
+    M1.dArrow.position.set(longitud * 0.5, -radio - 0.85, 0);
+    M1.dArrow.setLength(longitud, Math.min(0.45, longitud * 0.24), Math.min(0.26, longitud * 0.13));
   }
 }
 
 const _dummy = new THREE.Object3D();
 
 function updateMicro(dt, time) {
-  const st = microPhysics();
-  const R = microRadius();
+  const fisica = microPhysics();
+  const radio = microRadius(); // (R)
 
   /* --- Iones vibrando --- */
-  const amp = 0.018 + 0.075 * Math.sqrt(M1.T / 293);
+  const amplitudVibracion = 0.018 + 0.075 * Math.sqrt(M1.temperatura / 293);
   for (let i = 0; i < M1.ionData.length; i++) {
     const io = M1.ionData[i];
-    const rr = io.frac * R;
+    const rr = io.frac * radio;
     const bx = io.x;
     const by = rr * Math.cos(io.ang);
     const bz = rr * Math.sin(io.ang);
-    const w = io.fr * (0.6 + M1.T / 500);
+    const w = io.fr * (0.6 + M1.temperatura / 500);
     _dummy.position.set(
-      bx + Math.sin(time * w + io.ax) * amp,
-      by + Math.sin(time * w * 1.13 + io.ay) * amp,
-      bz + Math.sin(time * w * 0.87 + io.az) * amp
+      bx + Math.sin(time * w + io.ax) * amplitudVibracion,
+      by + Math.sin(time * w * 1.13 + io.ay) * amplitudVibracion,
+      bz + Math.sin(time * w * 0.87 + io.az) * amplitudVibracion
     );
     _dummy.scale.setScalar(1);
     _dummy.rotation.set(0, 0, 0);
@@ -740,37 +753,39 @@ function updateMicro(dt, time) {
   M1.ions.instanceMatrix.needsUpdate = true;
 
   /* --- Electrones --- */
-  const pos = M1.ePos, vel = M1.eVel;
-  const N = M1.nElec;
-  const vthVis = 2.45;
-  const vdVis = st.vd * 14.0;      // escala visual exagerada
-  const pChange = 1 - Math.exp(-dt / 0.11);
-  const lim = R * 0.93;
+  const posiciones = M1.ePos;
+  const velocidades = M1.eVel;
+  const N = M1.numeroElectrones;
+  
+  const velocidadTermicaVisual = 2.45;
+  const velocidadDerivaVisual = fisica.velocidadDeriva * 14.0; // escala visual exagerada
+  const probabilidadCambio = 1 - Math.exp(-dt / 0.11);
+  const limiteRadio = radio * 0.93;
   const detX = M1.detectorX;
 
   for (let i = 0; i < N; i++) {
     const i3 = i * 3;
 
     // colisión con la red → nueva dirección aleatoria
-    if (Math.random() < pChange) {
+    if (Math.random() < probabilidadCambio) {
       const d = RAND_DIRS[(Math.random() * RAND_DIRS.length) | 0];
-      vel[i3] = d[0]; vel[i3 + 1] = d[1]; vel[i3 + 2] = d[2];
+      velocidades[i3] = d[0]; velocidades[i3 + 1] = d[1]; velocidades[i3 + 2] = d[2];
     }
 
-    const oldX = pos[i3];
-    let x = oldX + (vel[i3] * vthVis - vdVis) * dt;
-    let y = pos[i3 + 1] + vel[i3 + 1] * vthVis * dt;
-    let z = pos[i3 + 2] + vel[i3 + 2] * vthVis * dt;
+    const oldX = posiciones[i3];
+    let x = oldX + (velocidades[i3] * velocidadTermicaVisual - velocidadDerivaVisual) * dt;
+    let y = posiciones[i3 + 1] + velocidades[i3 + 1] * velocidadTermicaVisual * dt;
+    let z = posiciones[i3 + 2] + velocidades[i3 + 2] * velocidadTermicaVisual * dt;
 
     // reflexión en la pared del cilindro
     const rr = Math.hypot(y, z);
-    if (rr > lim) {
+    if (rr > limiteRadio) {
       const nx = y / rr, nz = z / rr;
-      const dot = vel[i3 + 1] * nx + vel[i3 + 2] * nz;
-      vel[i3 + 1] -= 2 * dot * nx;
-      vel[i3 + 2] -= 2 * dot * nz;
-      y = nx * lim;
-      z = nz * lim;
+      const dot = velocidades[i3 + 1] * nx + velocidades[i3 + 2] * nz;
+      velocidades[i3 + 1] -= 2 * dot * nx;
+      velocidades[i3 + 2] -= 2 * dot * nz;
+      y = nx * limiteRadio;
+      z = nz * limiteRadio;
     }
 
     // frontera periódica longitudinal
@@ -783,7 +798,7 @@ function updateMicro(dt, time) {
     // detección de cruce del plano
     if (oldX > detX && x <= detX) { M1.crossings++; M1.pulse = 1; }
 
-    pos[i3] = x; pos[i3 + 1] = y; pos[i3 + 2] = z;
+    posiciones[i3] = x; posiciones[i3 + 1] = y; posiciones[i3 + 2] = z;
   }
   M1.particles.geometry.attributes.position.needsUpdate = true;
 
@@ -802,12 +817,12 @@ function updateMicro(dt, time) {
   M1.detDisc.material.opacity = 0.06 + M1.pulse * 0.16;
 
   /* --- HUD --- */
-  setText('h-vd', fmt(st.vd * 1000, 'mm/s'));
-  setText('h-J', fmt(st.J, 'A/m²'));
-  setText('h-I', fmt(st.I, 'A'));
-  setText('h-tau', fmt(st.tau, 's'));
-  setText('h-mu', fmt(st.mu, 'm²/(V·s)'));
-  setText('h-n', st.m.n.toExponential(2) + ' m⁻³');
+  setText('h-vd', fmt(fisica.velocidadDeriva * 1000, 'mm/s'));
+  setText('h-J', fmt(fisica.densidadCorriente, 'A/m²'));
+  setText('h-I', fmt(fisica.corriente, 'A'));
+  setText('h-tau', fmt(fisica.tiempoLibreMedio, 's'));
+  setText('h-mu', fmt(fisica.movilidad, 'm²/(V·s)'));
+  setText('h-n', fisica.material.densidadPortadores.toExponential(2) + ' m⁻³');
   setText('h-cross', M1.crossRate.toFixed(1) + ' e⁻/s');
 }
 
@@ -815,22 +830,22 @@ function updateMicro(dt, time) {
    MÓDULO 2 — LEY DE OHM Y RESISTENCIA MACROSCÓPICA
    ================================================================ */
 const M2 = {
-  V: 12,
-  R0: 470,
-  T: 25,          // °C
-  mat: 'nicromo',
-  R: 470,
-  I: 0,
-  P: 0,
+  voltaje: 12,             // (V)
+  resistenciaBase: 470,    // (R0)
+  temperatura: 25,         // (T) °C
+  material: 'nicromo',
+  resistencia: 470,        // (R)
+  corriente: 0,            // (I)
+  potencia: 0,             // (P)
   lastBandR: -1,
   bands: []
 };
 
 const MATS_RES = {
-  cobre:     { nombre: 'Cobre',     rho: 1.68e-8, alpha: 3.9e-3,  color: 0xb87333 },
-  tungsteno: { nombre: 'Tungsteno', rho: 5.60e-8, alpha: 4.5e-3,  color: 0x9aa3ad },
-  nicromo:   { nombre: 'Nicromel',  rho: 1.10e-6, alpha: 4.0e-4,  color: 0x8d99ae },
-  carbono:   { nombre: 'Carbono',   rho: 3.50e-5, alpha: -5.0e-4, color: 0x2f2f2f }
+  cobre:     { nombre: 'Cobre',     resistividad: 1.68e-8, coeficienteTemperatura: 3.9e-3,  color: 0xb87333 },
+  tungsteno: { nombre: 'Tungsteno', resistividad: 5.60e-8, coeficienteTemperatura: 4.5e-3,  color: 0x9aa3ad },
+  nicromo:   { nombre: 'Nicromel',  resistividad: 1.10e-6, coeficienteTemperatura: 4.0e-4,  color: 0x8d99ae },
+  carbono:   { nombre: 'Carbono',   resistividad: 3.50e-5, coeficienteTemperatura: -5.0e-4, color: 0x2f2f2f }
 };
 
 const BAND_COLORS = [
@@ -848,10 +863,10 @@ const BAND_COLORS = [
 const GOLD = '#d4af37';
 const SILVER = '#c0c0c0';
 
-function computeBands(R) {
-  if (!isFinite(R) || R <= 0) return ['#0a0a0a', '#0a0a0a', '#0a0a0a', GOLD];
-  let exp = Math.floor(Math.log10(R)) - 1;
-  let mant = R / Math.pow(10, exp);
+function computeBands(resistencia) {
+  if (!isFinite(resistencia) || resistencia <= 0) return ['#0a0a0a', '#0a0a0a', '#0a0a0a', GOLD];
+  let exp = Math.floor(Math.log10(resistencia)) - 1;
+  let mant = resistencia / Math.pow(10, exp);
   let m = Math.round(mant);
   if (m >= 100) { m = Math.round(m / 10); exp += 1; }
   if (m < 10) { m = Math.round(m * 10); exp -= 1; }
@@ -866,11 +881,11 @@ function computeBands(R) {
 }
 
 function ohmPhysics() {
-  const m = MATS_RES[M2.mat];
-  const R = Math.max(1e-4, M2.R0 * (1 + m.alpha * (M2.T - 20)));
-  const I = M2.V / R;
-  const P = M2.V * I;
-  return { m, R, I, P };
+  const material = MATS_RES[M2.material];
+  const resistencia = Math.max(1e-4, M2.resistenciaBase * (1 + material.coeficienteTemperatura * (M2.temperatura - 20)));
+  const corriente = M2.voltaje / resistencia;
+  const potencia = M2.voltaje * corriente;
+  return { material, resistencia, corriente, potencia };
 }
 
 function buildOhm() {
@@ -951,34 +966,36 @@ function buildOhm() {
 }
 
 function updateOhm(dt, time) {
-  const st = ohmPhysics();
-  M2.R = st.R; M2.I = st.I; M2.P = st.P;
+  const fisica = ohmPhysics();
+  M2.resistencia = fisica.resistencia;
+  M2.corriente = fisica.corriente;
+  M2.potencia = fisica.potencia;
 
   /* Bandas de color */
-  if (Math.abs(st.R - M2.lastBandR) > 0.01) {
-    M2.lastBandR = st.R;
-    const cols = computeBands(st.R);
+  if (Math.abs(fisica.resistencia - M2.lastBandR) > 0.01) {
+    M2.lastBandR = fisica.resistencia;
+    const cols = computeBands(fisica.resistencia);
     for (let i = 0; i < 4; i++) M2.bands[i].material.color.set(cols[i]);
     M2.bandColors = cols;
   }
 
   /* Efecto Joule */
-  const glow = clamp(st.P / 45, 0, 1);
+  const brillo = clamp(fisica.potencia / 45, 0, 1);
   const t = performance.now() * 0.004;
-  const flick = 0.9 + 0.1 * Math.sin(t * 3.1) * Math.sin(t * 1.7);
-  M2.bodyMat.emissive.setRGB(glow * 1.0 * flick, glow * 0.32 * flick, glow * 0.06 * flick);
-  M2.bodyMat.emissiveIntensity = 0.25 + glow * 2.4;
-  M2.light.intensity = glow * 3.2;
-  M2.halo.material.opacity = glow * 0.16;
-  M2.halo.scale.setScalar(1 + glow * 0.35 + Math.sin(t * 2.2) * glow * 0.05);
+  const parpadeo = 0.9 + 0.1 * Math.sin(t * 3.1) * Math.sin(t * 1.7);
+  M2.bodyMat.emissive.setRGB(brillo * 1.0 * parpadeo, brillo * 0.32 * parpadeo, brillo * 0.06 * parpadeo);
+  M2.bodyMat.emissiveIntensity = 0.25 + brillo * 2.4;
+  M2.light.intensity = brillo * 3.2;
+  M2.halo.material.opacity = brillo * 0.16;
+  M2.halo.scale.setScalar(1 + brillo * 0.35 + Math.sin(t * 2.2) * brillo * 0.05);
 
   /* HUD */
-  setText('h-R', fmt(st.R, 'Ω'));
-  setText('h-I2', fmt(st.I, 'A'));
-  setText('h-P', fmt(st.P, 'W'));
-  setText('h-T2', M2.T.toFixed(0) + ' °C');
-  setText('h-rho', st.m.rho.toExponential(2) + ' Ω·m');
-  setText('h-alpha', (st.m.alpha > 0 ? '+' : '') + st.m.alpha.toExponential(1) + ' K⁻¹');
+  setText('h-R', fmt(fisica.resistencia, 'Ω'));
+  setText('h-I2', fmt(fisica.corriente, 'A'));
+  setText('h-P', fmt(fisica.potencia, 'W'));
+  setText('h-T2', M2.temperatura.toFixed(0) + ' °C');
+  setText('h-rho', fisica.material.resistividad.toExponential(2) + ' Ω·m');
+  setText('h-alpha', (fisica.material.coeficienteTemperatura > 0 ? '+' : '') + fisica.material.coeficienteTemperatura.toExponential(1) + ' K⁻¹');
 
   const bc = M2.bandColors || ['#000', '#000', '#000', '#000'];
   const names = ['1ª', '2ª', 'Mult.', 'Tol.'];
@@ -1007,7 +1024,7 @@ function drawVI() {
   const gw = W - pad.l - pad.r;
   const gh = H - pad.t - pad.b;
   const Vmax = 50;
-  const Imax = niceMax(Math.max(50 / Math.max(M2.R, 1e-3), 1e-6));
+  const Imax = niceMax(Math.max(50 / Math.max(M2.resistencia, 1e-3), 1e-6));
 
   // fondo de la gráfica
   ctx.fillStyle = 'rgba(8,13,22,0.55)';
@@ -1046,7 +1063,7 @@ function drawVI() {
   ctx.restore();
 
   // recta V-I
-  const ImaxLine = Vmax / Math.max(M2.R, 1e-9);
+  const ImaxLine = Vmax / Math.max(M2.resistencia, 1e-9);
   const px = (v) => pad.l + (v / Vmax) * gw;
   const py = (i) => pad.t + gh - clamp(i / Imax, 0, 1) * gh;
 
@@ -1059,15 +1076,15 @@ function drawVI() {
   if (ImaxLine <= Imax) {
     ctx.lineTo(px(Vmax), py(ImaxLine));
   } else {
-    const vAtImax = Imax * M2.R;
+    const vAtImax = Imax * M2.resistencia;
     ctx.lineTo(px(vAtImax), py(Imax));
   }
   ctx.stroke();
   ctx.shadowBlur = 0;
 
   // punto de operación
-  const ox = px(clamp(M2.V, 0, Vmax));
-  const oy = py(clamp(M2.I, 0, Imax * 1.6));
+  const ox = px(clamp(M2.voltaje, 0, Vmax));
+  const oy = py(clamp(M2.corriente, 0, Imax * 1.6));
   ctx.beginPath();
   ctx.arc(ox, oy, 5.5, 0, Math.PI * 2);
   ctx.fillStyle = '#fa709a';
@@ -1086,7 +1103,7 @@ function drawVI() {
   ctx.fillText('pendiente = 1/R', pad.l + 6, pad.t + 12);
   ctx.textAlign = 'right';
   ctx.fillStyle = '#ffb3cd';
-  ctx.fillText('P = ' + fmtNoUnit(M2.P, 2) + ' W', pad.l + gw - 4, pad.t + 12);
+  ctx.fillText('P = ' + fmtNoUnit(M2.potencia, 2) + ' W', pad.l + gw - 4, pad.t + 12);
 }
 
 /* ================================================================
@@ -1148,20 +1165,23 @@ const CIRCUIT_DEFS = {
 };
 
 const C3 = {
-  cfg: 'serie',
-  R1: 10, R2: 20, R3: 30,
-  emf: 12, rint: 0.5,
-  burnt: '',
-  group: new THREE.Group(),
-  branches: [],
-  nodes: {},
-  def: null,
-  sol: null,
-  selBranch: null,
-  probeA: null,
-  probeB: null
+  configuracion: 'serie',      // (cfg)
+  resistencia1: 10,            // (R1)
+  resistencia2: 20,            // (R2)
+  resistencia3: 30,            // (R3)
+  fuerzaElectromotriz: 12,     // (fem)
+  resistenciaInterna: 0.5,     // (rint)
+  elementoFundido: '',         // (burnt)
+  grupo: new THREE.Group(),    // (group)
+  ramas: [],                   // (branches)
+  nodos: {},                   // (nodes)
+  definicion: null,            // (def)
+  solucion: null,              // (sol)
+  ramaSeleccionada: null,      // (selBranch)
+  sondaA: null,                // (probeA)
+  sondaB: null                 // (probeB)
 };
-MOD.circuit.add(C3.group);
+MOD.circuit.add(C3.grupo);
 
 const PICKABLE = [];
 const wireMatShared = new THREE.MeshStandardMaterial({
@@ -1206,16 +1226,16 @@ function makeWireSegment(p1, p2, radius, mat) {
 }
 
 function buildCircuit(key) {
-  clearGroup(C3.group);
+  clearGroup(C3.grupo);
   PICKABLE.length = 0;
-  C3.branches = [];
-  C3.nodes = {};
-  C3.selBranch = null;
-  C3.probeA = null;
-  C3.probeB = null;
+  C3.ramas = [];
+  C3.nodos = {};
+  C3.ramaSeleccionada = null;
+  C3.sondaA = null;
+  C3.sondaB = null;
 
-  const def = CIRCUIT_DEFS[key];
-  C3.def = def;
+  const definicion = CIRCUIT_DEFS[key];
+  C3.definicion = definicion;
 
   /* Tablero */
   const boardGeo = new THREE.BoxGeometry(11.5, 9.6, 0.36);
@@ -1224,7 +1244,7 @@ function buildCircuit(key) {
   });
   const board = new THREE.Mesh(boardGeo, boardMat);
   board.position.z = -0.42;
-  C3.group.add(board);
+  C3.grupo.add(board);
 
   const frameGeo = new THREE.BoxGeometry(11.75, 9.85, 0.12);
   const frameMat = new THREE.MeshStandardMaterial({
@@ -1233,40 +1253,40 @@ function buildCircuit(key) {
   });
   const frame = new THREE.Mesh(frameGeo, frameMat);
   frame.position.z = -0.62;
-  C3.group.add(frame);
+  C3.grupo.add(frame);
 
   /* Nodos */
   const nodeGeo = new THREE.SphereGeometry(0.13, 16, 12);
-  for (const id in def.nodes) {
-    const p = def.nodes[id];
+  for (const id in definicion.nodes) {
+    const p = definicion.nodes[id];
     const pos = new THREE.Vector3(p[0], p[1], 0);
     const mat = nodeMatBase.clone();
     const mesh = new THREE.Mesh(nodeGeo, mat);
     mesh.position.copy(pos);
     mesh.userData.nodeId = id;
-    C3.group.add(mesh);
+    C3.grupo.add(mesh);
     PICKABLE.push(mesh);
-    C3.nodes[id] = { id, pos, mesh };
+    C3.nodos[id] = { id, pos, mesh };
   }
 
   /* Ramas */
-  for (const br of def.branches) buildBranch(br);
+  for (const br of definicion.branches) buildBranch(br);
 
   solveCircuit();
 }
 
 function buildBranch(br) {
-  const A = C3.nodes[br.a].pos;
-  const B = C3.nodes[br.b].pos;
-  const dir = new THREE.Vector3().subVectors(B, A);
-  const len = dir.length();
-  const u = dir.clone().normalize();
-  const mid = new THREE.Vector3().addVectors(A, B).multiplyScalar(0.5);
-  const angle = Math.atan2(dir.y, dir.x);
+  const puntoA = C3.nodos[br.a].pos;
+  const puntoB = C3.nodos[br.b].pos;
+  const direccion = new THREE.Vector3().subVectors(puntoB, puntoA);
+  const longitud = direccion.length();
+  const vectorUnitario = direccion.clone().normalize();
+  const puntoMedio = new THREE.Vector3().addVectors(puntoA, puntoB).multiplyScalar(0.5);
+  const angulo = Math.atan2(direccion.y, direccion.x);
 
   const obj = {
     def: br,
-    A: A.clone(), B: B.clone(), len, mid: mid.clone(),
+    A: puntoA.clone(), B: puntoB.clone(), len: longitud, mid: puntoMedio.clone(),
     meshes: [], current: 0, speed: 0,
     particles: null, tArr: null, geo: null
   };
@@ -1275,27 +1295,27 @@ function buildBranch(br) {
   let element = null;
 
   if (br.type === 'res') {
-    elLen = Math.min(1.35, len * 0.62);
+    elLen = Math.min(1.35, longitud * 0.62);
     const geo = new THREE.CylinderGeometry(0.27, 0.27, elLen, 20);
     const mat = resBodyMat.clone();
     element = new THREE.Mesh(geo, mat);
-    element.position.copy(mid);
-    element.rotation.z = angle - Math.PI / 2;
+    element.position.copy(puntoMedio);
+    element.rotation.z = angulo - Math.PI / 2;
     element.userData.branchId = br.id;
-    C3.group.add(element);
+    C3.grupo.add(element);
     obj.meshes.push(element);
     PICKABLE.push(element);
     obj.element = element;
     obj.elementMat = mat;
   } else if (br.type === 'battery') {
-    elLen = Math.min(1.1, len * 0.55);
+    elLen = Math.min(1.1, longitud * 0.55);
     const geo = new THREE.CylinderGeometry(0.36, 0.36, elLen, 20);
     const mat = battMat.clone();
     element = new THREE.Mesh(geo, mat);
-    element.position.copy(mid);
-    element.rotation.z = angle - Math.PI / 2;
+    element.position.copy(puntoMedio);
+    element.rotation.z = angulo - Math.PI / 2;
     element.userData.branchId = br.id;
-    C3.group.add(element);
+    C3.grupo.add(element);
     obj.meshes.push(element);
     PICKABLE.push(element);
     obj.element = element;
@@ -1312,33 +1332,33 @@ function buildBranch(br) {
       roughness: 0.4, metalness: 0.4
     });
     const capP = new THREE.Mesh(capGeo, capMatP);
-    capP.position.copy(mid).addScaledVector(u, -elLen / 2 + 0.06);
-    capP.rotation.z = angle - Math.PI / 2;
+    capP.position.copy(puntoMedio).addScaledVector(vectorUnitario, -elLen / 2 + 0.06);
+    capP.rotation.z = angulo - Math.PI / 2;
     capP.userData.branchId = br.id;
     const capN = new THREE.Mesh(capGeo, capMatN);
-    capN.position.copy(mid).addScaledVector(u, elLen / 2 - 0.06);
-    capN.rotation.z = angle - Math.PI / 2;
+    capN.position.copy(puntoMedio).addScaledVector(vectorUnitario, elLen / 2 - 0.06);
+    capN.rotation.z = angulo - Math.PI / 2;
     capN.userData.branchId = br.id;
-    C3.group.add(capP, capN);
+    C3.grupo.add(capP, capN);
     obj.meshes.push(capP, capN);
     PICKABLE.push(capP, capN);
   }
 
   /* Cables (desde los extremos hasta el elemento o el segmento completo) */
   if (element) {
-    const p1 = mid.clone().addScaledVector(u, -elLen / 2);
-    const p2 = mid.clone().addScaledVector(u, elLen / 2);
-    const s1 = makeWireSegment(A, p1, 0.055, wireMatShared);
-    const s2 = makeWireSegment(p2, B, 0.055, wireMatShared);
-    if (s1) { s1.userData.branchId = br.id; C3.group.add(s1); PICKABLE.push(s1); obj.meshes.push(s1); }
-    if (s2) { s2.userData.branchId = br.id; C3.group.add(s2); PICKABLE.push(s2); obj.meshes.push(s2); }
+    const p1 = puntoMedio.clone().addScaledVector(vectorUnitario, -elLen / 2);
+    const p2 = puntoMedio.clone().addScaledVector(vectorUnitario, elLen / 2);
+    const s1 = makeWireSegment(puntoA, p1, 0.055, wireMatShared);
+    const s2 = makeWireSegment(p2, puntoB, 0.055, wireMatShared);
+    if (s1) { s1.userData.branchId = br.id; C3.grupo.add(s1); PICKABLE.push(s1); obj.meshes.push(s1); }
+    if (s2) { s2.userData.branchId = br.id; C3.grupo.add(s2); PICKABLE.push(s2); obj.meshes.push(s2); }
   } else {
-    const s = makeWireSegment(A, B, 0.055, wireMatShared);
-    if (s) { s.userData.branchId = br.id; C3.group.add(s); PICKABLE.push(s); obj.meshes.push(s); }
+    const s = makeWireSegment(puntoA, puntoB, 0.055, wireMatShared);
+    if (s) { s.userData.branchId = br.id; C3.grupo.add(s); PICKABLE.push(s); obj.meshes.push(s); }
   }
 
   /* Partículas de corriente */
-  const K = Math.max(3, Math.min(18, Math.round(len * 1.6)));
+  const K = Math.max(3, Math.min(18, Math.round(longitud * 1.6)));
   const pos = new Float32Array(K * 3);
   const tArr = new Float32Array(K);
   for (let i = 0; i < K; i++) tArr[i] = i / K;
@@ -1351,12 +1371,12 @@ function buildBranch(br) {
   });
   const pts = new THREE.Points(geo, pmat);
   pts.frustumCulled = false;
-  C3.group.add(pts);
+  C3.grupo.add(pts);
   obj.particles = pts;
   obj.geo = geo;
   obj.tArr = tArr;
 
-  C3.branches.push(obj);
+  C3.ramas.push(obj);
 }
 
 /* ------------- Solver nodal (análisis de nodos) ------------- */
@@ -1387,10 +1407,10 @@ function gaussSolve(A, b) {
 }
 
 function solveCircuit() {
-  const def = C3.def;
-  if (!def) return;
+  const definicion = C3.definicion;
+  if (!definicion) return;
 
-  const ids = Object.keys(def.nodes);
+  const ids = Object.keys(definicion.nodes);
   const idx = {};
   ids.forEach((n, i) => { idx[n] = i; });
   const N = ids.length;
@@ -1405,30 +1425,36 @@ function solveCircuit() {
     G[idx[c]][idx[a]] -= g;
   };
 
-  const values = { R1: C3.R1, R2: C3.R2, R3: C3.R3, emf: C3.emf, rint: C3.rint };
+  const valores = { 
+    R1: C3.resistencia1, 
+    R2: C3.resistencia2, 
+    R3: C3.resistencia3, 
+    fem: C3.fuerzaElectromotriz, 
+    rint: C3.resistenciaInterna 
+  };
   const entries = [];
 
-  for (const br of def.branches) {
+  for (const br of definicion.branches) {
     if (br.type === 'wire') {
       const g = 1e4;
       addG(br.a, br.b, g);
-      entries.push({ br, g, R: 1e-4, emf: 0, burnt: false });
+      entries.push({ br, g, R: 1e-4, fem: 0, burnt: false });
     } else if (br.type === 'res') {
-      const isBurnt = C3.burnt === br.id;
+      const isBurnt = C3.elementoFundido === br.id;
       if (isBurnt) {
-        entries.push({ br, g: 0, R: Infinity, emf: 0, burnt: true });
+        entries.push({ br, g: 0, R: Infinity, fem: 0, burnt: true });
       } else {
-        const R = Math.max(values[br.key], 1e-6);
-        addG(br.a, br.b, 1 / R);
-        entries.push({ br, g: 1 / R, R, emf: 0, burnt: false });
+        const resistencia = Math.max(valores[br.key], 1e-6);
+        addG(br.a, br.b, 1 / resistencia);
+        entries.push({ br, g: 1 / resistencia, R: resistencia, fem: 0, burnt: false });
       }
     } else { // battery, positivo en 'a'
-      const r = Math.max(values.rint, 1e-4);
+      const r = Math.max(valores.rint, 1e-4);
       const g = 1 / r;
       addG(br.a, br.b, g);
-      rhs[idx[br.a]] += values.emf / r;
-      rhs[idx[br.b]] -= values.emf / r;
-      entries.push({ br, g, R: r, emf: values.emf, burnt: false });
+      rhs[idx[br.a]] += valores.fem / r;
+      rhs[idx[br.b]] -= valores.fem / r;
+      entries.push({ br, g, R: r, emf: valores.fem, burnt: false });
     }
   }
 
@@ -1441,31 +1467,31 @@ function solveCircuit() {
   rhs[0] = 0;
 
   const V = gaussSolve(G, rhs);
-  const pot = {};
-  ids.forEach((n, i) => { pot[n] = V[i]; });
+  const potencial = {};
+  ids.forEach((n, i) => { potencial[n] = V[i]; });
 
   // corrientes por rama
-  let iSource = 0;
-  let pSource = 0, pInternal = 0, pResistors = 0;
+  let corrienteFuente = 0;
+  let potenciaFuente = 0, potenciaInterna = 0, potenciaResistencias = 0;
 
   for (const e of entries) {
-    const Va = pot[e.br.a], Vb = pot[e.br.b];
+    const Va = potencial[e.br.a], Vb = potencial[e.br.b];
     let Iab;
     if (e.br.type === 'battery') {
       Iab = (Va - Vb) / e.R - e.emf / e.R;
       const iOut = -Iab; // corriente entregada al circuito
-      iSource = iOut;
-      pSource = e.emf * iOut;
-      pInternal = iOut * iOut * e.R;
+      corrienteFuente = iOut;
+      potenciaFuente = e.emf * iOut;
+      potenciaInterna = iOut * iOut * e.R;
     } else {
       Iab = e.g * (Va - Vb);
-      if (!e.burnt && e.br.type === 'res') pResistors += Iab * Iab * e.R;
+      if (!e.burnt && e.br.type === 'res') potenciaResistencias += Iab * Iab * e.R;
     }
     e.current = Iab;
   }
 
   // asignar a objetos renderizados
-  for (const obj of C3.branches) {
+  for (const obj of C3.ramas) {
     const e = entries.find((x) => x.br.id === obj.def.id);
     obj.current = e ? e.current : 0;
     obj.burnt = e ? e.burnt : false;
@@ -1486,55 +1512,58 @@ function solveCircuit() {
     }
   }
 
-  C3.sol = {
-    pot, V, ids, idx, entries,
-    iSource, pSource, pInternal, pResistors,
-    Req: null
+  C3.solucion = {
+    potencial, V, ids, idx, entries,
+    corrienteFuente,
+    potenciaFuente,
+    potenciaInterna,
+    potenciaResistencias,
+    resistenciaEquivalente: null,
+    voltajeTerminal: 0
   };
 
   /* Resistencia equivalente vista por la fuente */
-  if (iSource > 1e-12) {
-    const vt = Math.abs(pot[def.branches.find((b) => b.type === 'battery').a] -
-      pot[def.branches.find((b) => b.type === 'battery').b]);
-    C3.sol.Req = vt / iSource;
-    C3.sol.Vt = vt;
+  if (corrienteFuente > 1e-12) {
+    const vt = Math.abs(potencial[definicion.branches.find((b) => b.type === 'battery').a] -
+      potencial[definicion.branches.find((b) => b.type === 'battery').b]);
+    C3.solucion.resistenciaEquivalente = vt / corrienteFuente;
+    C3.solucion.voltajeTerminal = vt;
   } else {
-    C3.sol.Req = Infinity;
-    C3.sol.Vt = 0;
+    C3.solucion.resistenciaEquivalente = Infinity;
+    C3.solucion.voltajeTerminal = 0;
   }
 
   updateCircuitHUD();
 }
 
 function updateCircuitHUD() {
-  const s = C3.sol;
+  const s = C3.solucion;
   if (!s) return;
-  const def = C3.def;
-  const bat = def.branches.find((b) => b.type === 'battery');
-  const Vt = s.Vt || 0;
+  const definicion = C3.definicion;
+  const voltajeTerminal = s.voltajeTerminal || 0;
 
-  setText('h-Req', fmt(s.Req, 'Ω'));
-  setText('h-Itot', fmt(Math.abs(s.iSource), 'A'));
-  setText('h-Vt', fmt(Vt, 'V'));
-  setText('h-pSrc', fmt(s.pSource, 'W'));
-  setText('h-pInt', fmt(s.pInternal, 'W'));
-  setText('h-pRes', fmt(s.pResistors, 'W'));
-  setText('h-bal', fmt(Math.abs(s.pSource - (s.pInternal + s.pResistors)), 'W'));
-  setText('h-cfg', def.nombre);
+  setText('h-Req', fmt(s.resistenciaEquivalente, 'Ω'));
+  setText('h-Itot', fmt(Math.abs(s.corrienteFuente), 'A'));
+  setText('h-Vt', fmt(voltajeTerminal, 'V'));
+  setText('h-pSrc', fmt(s.potenciaFuente, 'W'));
+  setText('h-pInt', fmt(s.potenciaInterna, 'W'));
+  setText('h-pRes', fmt(s.potenciaResistencias, 'W'));
+  setText('h-bal', fmt(Math.abs(s.potenciaFuente - (s.potenciaInterna + s.potenciaResistencias)), 'W'));
+  setText('h-cfg', definicion.nombre);
 }
 
 function updateCircuit(dt, time) {
-  if (!C3.sol) return;
+  if (!C3.solucion) return;
 
   /* Partículas de corriente */
-  for (const obj of C3.branches) {
-    const I = obj.current || 0;
-    const speed = Math.abs(I) * 0.55; // unidades/s por amperio
-    const visible = Math.abs(I) > 1e-5;
-    obj.particles.visible = visible;
-    if (!visible) continue;
+  for (const obj of C3.ramas) {
+    const corriente = obj.current || 0;
+    const velocidad = Math.abs(corriente) * 0.55; // unidades/s por amperio
+    const esVisible = Math.abs(corriente) > 1e-5;
+    obj.particles.visible = esVisible;
+    if (!esVisible) continue;
 
-    const sign = I > 0 ? 1 : -1;
+    const signo = corriente > 0 ? 1 : -1;
     const tArr = obj.tArr;
     const posAttr = obj.geo.attributes.position;
     const arr = posAttr.array;
@@ -1542,7 +1571,7 @@ function updateCircuit(dt, time) {
     const K = tArr.length;
 
     for (let i = 0; i < K; i++) {
-      tArr[i] += (sign * speed * dt) / Math.max(obj.len, 1e-6);
+      tArr[i] += (signo * velocidad * dt) / Math.max(obj.len, 1e-6);
       tArr[i] -= Math.floor(tArr[i]);
       const t = tArr[i];
       arr[i * 3] = A.x + (B.x - A.x) * t;
@@ -1552,14 +1581,14 @@ function updateCircuit(dt, time) {
     posAttr.needsUpdate = true;
 
     // brillo según corriente
-    const mat = obj.particles.material;
-    mat.opacity = clamp(0.35 + Math.abs(I) * 0.35, 0.35, 1);
-    mat.size = clamp(0.11 + Math.abs(I) * 0.045, 0.11, 0.24);
+    const materialParticula = obj.particles.material;
+    materialParticula.opacity = clamp(0.35 + Math.abs(corriente) * 0.35, 0.35, 1);
+    materialParticula.size = clamp(0.11 + Math.abs(corriente) * 0.045, 0.11, 0.24);
   }
 
   /* Resaltado de selección */
-  for (const obj of C3.branches) {
-    const sel = C3.selBranch === obj.def.id;
+  for (const obj of C3.ramas) {
+    const sel = C3.ramaSeleccionada === obj.def.id;
     for (const m of obj.meshes) {
       if (m.material && m.material.emissive && obj.def.type === 'wire') {
         m.material.emissive.setHex(sel ? 0x00f2fe : 0x000000);
@@ -1567,10 +1596,10 @@ function updateCircuit(dt, time) {
       }
     }
   }
-  for (const id in C3.nodes) {
-    const n = C3.nodes[id];
-    const isA = C3.probeA === id;
-    const isB = C3.probeB === id;
+  for (const id in C3.nodos) {
+    const n = C3.nodos[id];
+    const isA = C3.sondaA === id;
+    const isB = C3.sondaB === id;
     n.mesh.material.emissive.setHex(isA ? 0xfa709a : isB ? 0x00f2fe : 0x00f2fe);
     n.mesh.material.emissiveIntensity = (isA || isB) ? 2.2 : 0.55;
     n.mesh.scale.setScalar((isA || isB) ? 1.55 + Math.sin(time * 6) * 0.12 : 1);
@@ -1597,22 +1626,22 @@ function projectToScreen(v) {
 }
 
 function updateLabels() {
-  if (activeModule !== 'circuit' || !C3.sol) {
+  if (activeModule !== 'circuit' || !C3.solucion) {
     tagAmp.classList.add('hidden');
     tagVolt.classList.add('hidden');
     return;
   }
 
   /* Amperímetro */
-  if (C3.selBranch) {
-    const obj = C3.branches.find((b) => b.def.id === C3.selBranch);
-    if (obj) {
-      const p = projectToScreen(obj.mid);
+  if (C3.ramaSeleccionada) {
+    const objetoRama = C3.ramas.find((b) => b.def.id === C3.ramaSeleccionada);
+    if (objetoRama) {
+      const p = projectToScreen(objetoRama.mid);
       if (p.visible) {
         tagAmp.classList.remove('hidden');
         tagAmp.style.left = p.x + 'px';
         tagAmp.style.top = (p.y - 26) + 'px';
-        tagAmp.textContent = 'A = ' + fmt(Math.abs(obj.current), 'A');
+        tagAmp.textContent = 'Corriente (I) = ' + fmt(Math.abs(objetoRama.current), 'A');
       } else {
         tagAmp.classList.add('hidden');
       }
@@ -1622,17 +1651,17 @@ function updateLabels() {
   }
 
   /* Voltímetro */
-  if (C3.probeA && C3.probeB) {
-    const a = C3.nodes[C3.probeA], b = C3.nodes[C3.probeB];
+  if (C3.sondaA && C3.sondaB) {
+    const a = C3.nodos[C3.sondaA], b = C3.nodos[C3.sondaB];
     if (a && b) {
       const mid = new THREE.Vector3().addVectors(a.pos, b.pos).multiplyScalar(0.5);
       const p = projectToScreen(mid);
-      const dV = C3.sol.pot[C3.probeA] - C3.sol.pot[C3.probeB];
+      const diferenciaVoltaje = C3.solucion.potencial[C3.sondaA] - C3.solucion.potencial[C3.sondaB];
       if (p.visible) {
         tagVolt.classList.remove('hidden');
         tagVolt.style.left = p.x + 'px';
         tagVolt.style.top = (p.y + 26) + 'px';
-        tagVolt.textContent = 'ΔV = ' + dV.toFixed(3) + ' V';
+        tagVolt.textContent = 'ΔV = ' + diferenciaVoltaje.toFixed(3) + ' V';
       } else {
         tagVolt.classList.add('hidden');
       }
@@ -1668,16 +1697,16 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   const o = hits[0].object;
   if (o.userData.nodeId) {
     const id = o.userData.nodeId;
-    if (C3.probeA === null) {
-      C3.probeA = id; C3.probeB = null;
-    } else if (C3.probeB === null) {
-      if (id === C3.probeA) { C3.probeA = null; }
-      else C3.probeB = id;
+    if (C3.sondaA === null) {
+      C3.sondaA = id; C3.sondaB = null;
+    } else if (C3.sondaB === null) {
+      if (id === C3.sondaA) { C3.sondaA = null; }
+      else C3.sondaB = id;
     } else {
-      C3.probeA = id; C3.probeB = null;
+      C3.sondaA = id; C3.sondaB = null;
     }
   } else if (o.userData.branchId) {
-    C3.selBranch = o.userData.branchId;
+    C3.ramaSeleccionada = o.userData.branchId;
   }
 });
 
@@ -1695,29 +1724,29 @@ function buildHUD(mod) {
     c.innerHTML =
       '<div class="hud-title">Dinámica Microscópica</div>' +
       '<div class="metrics">' +
-        '<div class="metric"><span>v<sub>d</sub> deriva</span><b id="h-vd">—</b></div>' +
-        '<div class="metric"><span>J</span><b id="h-J">—</b></div>' +
-        '<div class="metric"><span>I total</span><b id="h-I">—</b></div>' +
-        '<div class="metric"><span>τ libre medio</span><b id="h-tau">—</b></div>' +
-        '<div class="metric"><span>μ movilidad</span><b id="h-mu">—</b></div>' +
-        '<div class="metric"><span>n portadores</span><b id="h-n">—</b></div>' +
+        '<div class="metric"><span>Vel. Deriva (vd)</span><b id="h-vd">—</b></div>' +
+        '<div class="metric"><span>Dens. Corriente (J)</span><b id="h-J">—</b></div>' +
+        '<div class="metric"><span>Corriente (I)</span><b id="h-I">—</b></div>' +
+        '<div class="metric"><span>Tiempo Libre Medio (τ)</span><b id="h-tau">—</b></div>' +
+        '<div class="metric"><span>Movilidad (μ)</span><b id="h-mu">—</b></div>' +
+        '<div class="metric"><span>Dens. Portadores (n)</span><b id="h-n">—</b></div>' +
         '<div class="metric wide"><span>Detecciones en la sección</span><b class="pink" id="h-cross">—</b></div>' +
       '</div>' +
       '<div class="formula">' +
-        'v<sub>d</sub> = μE = eτE/m<sub>e</sub><br>' +
-        'J = n|q|v<sub>d</sub> &nbsp;·&nbsp; I = J·A = n|q|v<sub>d</sub>A<br>' +
+        'vd = μE = eτE/me<br>' +
+        'J = n|q|vd &nbsp;·&nbsp; I = J·A = n|q|vdA<br>' +
         'τ(T) ≈ τ₀·(293/T) &nbsp;·&nbsp; <em>escala visual exagerada</em>' +
       '</div>';
   } else if (mod === 'ohm') {
     c.innerHTML =
       '<div class="hud-title">Ley de Ohm · Resistencia</div>' +
       '<div class="metrics">' +
-        '<div class="metric"><span>R(T)</span><b id="h-R">—</b></div>' +
-        '<div class="metric"><span>I = V/R</span><b id="h-I2">—</b></div>' +
-        '<div class="metric"><span>P disipada</span><b class="gold" id="h-P">—</b></div>' +
-        '<div class="metric"><span>T</span><b id="h-T2">—</b></div>' +
-        '<div class="metric"><span>ρ₀</span><b id="h-rho">—</b></div>' +
-        '<div class="metric"><span>α</span><b id="h-alpha">—</b></div>' +
+        '<div class="metric"><span>Resistencia (R)</span><b id="h-R">—</b></div>' +
+        '<div class="metric"><span>Corriente (I)</span><b id="h-I2">—</b></div>' +
+        '<div class="metric"><span>Potencia (P)</span><b class="gold" id="h-P">—</b></div>' +
+        '<div class="metric"><span>Temperatura (T)</span><b id="h-T2">—</b></div>' +
+        '<div class="metric"><span>Resistividad (ρ₀)</span><b id="h-rho">—</b></div>' +
+        '<div class="metric"><span>Coef. Temp. (α)</span><b id="h-alpha">—</b></div>' +
         '<div class="metric wide"><span>Bandas activas</span><b id="h-bands" style="display:flex;flex-wrap:wrap;font-family:inherit;">—</b></div>' +
       '</div>' +
       '<canvas id="vi" width="276" height="180"></canvas>' +
@@ -1731,18 +1760,18 @@ function buildHUD(mod) {
       '<div class="hud-title">Circuitos CC · Kirchhoff</div>' +
       '<div class="metrics">' +
         '<div class="metric wide"><span>Configuración</span><b id="h-cfg">—</b></div>' +
-        '<div class="metric"><span>R equivalente</span><b id="h-Req">—</b></div>' +
-        '<div class="metric"><span>I fuente</span><b id="h-Itot">—</b></div>' +
-        '<div class="metric"><span>V terminal</span><b id="h-Vt">—</b></div>' +
-        '<div class="metric"><span>P fuente ℰI</span><b class="gold" id="h-pSrc">—</b></div>' +
-        '<div class="metric"><span>P en r interna</span><b id="h-pInt">—</b></div>' +
-        '<div class="metric"><span>Σ I²R</span><b id="h-pRes">—</b></div>' +
+        '<div class="metric"><span>Resistencia Equiv. (Req)</span><b id="h-Req">—</b></div>' +
+        '<div class="metric"><span>Corriente Fuente (I)</span><b id="h-Itot">—</b></div>' +
+        '<div class="metric"><span>Voltaje Terminal (Vt)</span><b id="h-Vt">—</b></div>' +
+        '<div class="metric"><span>Potencia Fuente (P)</span><b class="gold" id="h-pSrc">—</b></div>' +
+        '<div class="metric"><span>Potencia Interna (Pr)</span><b id="h-pInt">—</b></div>' +
+        '<div class="metric"><span>Potencia Resistencias (PR)</span><b id="h-pRes">—</b></div>' +
         '<div class="metric wide"><span>Balance de potencia</span><b class="pink" id="h-bal">—</b></div>' +
       '</div>' +
       '<div class="formula">' +
-        'Σ I<sub>entra</sub> = Σ I<sub>sale</sub> &nbsp;·&nbsp; Σ V = 0<br>' +
-        'ℰ·I = I²r + Σ I<sub>k</sub>²R<sub>k</sub><br>' +
-        'V<sub>t</sub> = ℰ − I·r' +
+        'Σ I_entra = Σ I_sale &nbsp;·&nbsp; Σ V = 0<br>' +
+        'fem·I = I²r + Σ Ik²Rk<br>' +
+        'Vt = fem − I·r' +
       '</div>';
   }
 }
@@ -1793,80 +1822,80 @@ $('toggle').addEventListener('click', () => {
 
 /* ---- Módulo 1 ---- */
 $('s-E').addEventListener('input', (e) => {
-  M1.sE = parseFloat(e.target.value);
-  const s = M1.sE / 100;
-  M1.E = s * s * s * 100;             // mapeo cúbico 0..100 V/m
-  $('v-E').textContent = M1.E.toFixed(3) + ' V/m';
+  M1.sliderE = parseFloat(e.target.value);
+  const s = M1.sliderE / 100;
+  M1.campoElectrico = s * s * s * 100;             // mapeo cúbico 0..100 V/m
+  $('v-E').textContent = M1.campoElectrico.toFixed(3) + ' V/m';
   syncMicroGeometry();
 });
 $('s-d').addEventListener('input', (e) => {
-  M1.d = parseFloat(e.target.value);
-  $('v-d').textContent = M1.d.toFixed(2) + ' mm';
+  M1.diametro = parseFloat(e.target.value);
+  $('v-d').textContent = M1.diametro.toFixed(2) + ' mm';
   syncMicroGeometry();
 });
 $('s-T').addEventListener('input', (e) => {
-  M1.T = parseFloat(e.target.value);
-  $('v-T').textContent = M1.T.toFixed(0) + ' K';
+  M1.temperatura = parseFloat(e.target.value);
+  $('v-T').textContent = M1.temperatura.toFixed(0) + ' K';
   syncMicroGeometry();
 });
 $('s-mat').addEventListener('change', (e) => {
-  M1.mat = e.target.value;
+  M1.material = e.target.value;
   syncMicroGeometry();
 });
 
 /* ---- Módulo 2 ---- */
 $('s-V').addEventListener('input', (e) => {
-  M2.V = parseFloat(e.target.value);
-  $('v-V').textContent = M2.V.toFixed(1) + ' V';
+  M2.voltaje = parseFloat(e.target.value);
+  $('v-V').textContent = M2.voltaje.toFixed(1) + ' V';
 });
 $('s-R0').addEventListener('input', (e) => {
-  M2.R0 = parseFloat(e.target.value);
-  $('v-R0').textContent = M2.R0.toFixed(0) + ' Ω';
+  M2.resistenciaBase = parseFloat(e.target.value);
+  $('v-R0').textContent = M2.resistenciaBase.toFixed(0) + ' Ω';
 });
 $('s-T2').addEventListener('input', (e) => {
-  M2.T = parseFloat(e.target.value);
-  $('v-T2').textContent = M2.T.toFixed(0) + ' °C';
+  M2.temperatura = parseFloat(e.target.value);
+  $('v-T2').textContent = M2.temperatura.toFixed(0) + ' °C';
 });
 $('s-mat2').addEventListener('change', (e) => {
-  M2.mat = e.target.value;
+  M2.material = e.target.value;
   M2.lastBandR = -1;
 });
 
 /* ---- Módulo 3 ---- */
 document.querySelectorAll('.mini').forEach((btn) => {
   btn.addEventListener('click', () => {
-    C3.cfg = btn.dataset.cfg;
+    C3.configuracion = btn.dataset.cfg;
     document.querySelectorAll('.mini').forEach((b) => b.classList.toggle('active', b === btn));
-    buildCircuit(C3.cfg);
+    buildCircuit(C3.configuracion);
   });
 });
 $('s-emf').addEventListener('input', (e) => {
-  C3.emf = parseFloat(e.target.value);
-  $('v-emf').textContent = C3.emf.toFixed(1) + ' V';
+  C3.fuerzaElectromotriz = parseFloat(e.target.value);
+  $('v-emf').textContent = C3.fuerzaElectromotriz.toFixed(1) + ' V';
   solveCircuit();
 });
 $('s-rint').addEventListener('input', (e) => {
-  C3.rint = parseFloat(e.target.value);
-  $('v-rint').textContent = C3.rint.toFixed(2) + ' Ω';
+  C3.resistenciaInterna = parseFloat(e.target.value);
+  $('v-rint').textContent = C3.resistenciaInterna.toFixed(2) + ' Ω';
   solveCircuit();
 });
 $('s-R1').addEventListener('input', (e) => {
-  C3.R1 = parseFloat(e.target.value);
-  $('v-R1').textContent = C3.R1.toFixed(0) + ' Ω';
+  C3.resistencia1 = parseFloat(e.target.value);
+  $('v-R1').textContent = C3.resistencia1.toFixed(0) + ' Ω';
   solveCircuit();
 });
 $('s-R2').addEventListener('input', (e) => {
-  C3.R2 = parseFloat(e.target.value);
-  $('v-R2').textContent = C3.R2.toFixed(0) + ' Ω';
+  C3.resistencia2 = parseFloat(e.target.value);
+  $('v-R2').textContent = C3.resistencia2.toFixed(0) + ' Ω';
   solveCircuit();
 });
 $('s-R3').addEventListener('input', (e) => {
-  C3.R3 = parseFloat(e.target.value);
-  $('v-R3').textContent = C3.R3.toFixed(0) + ' Ω';
+  C3.resistencia3 = parseFloat(e.target.value);
+  $('v-R3').textContent = C3.resistencia3.toFixed(0) + ' Ω';
   solveCircuit();
 });
 $('s-burn').addEventListener('change', (e) => {
-  C3.burnt = e.target.value;
+  C3.elementoFundido = e.target.value;
   solveCircuit();
 });
 
